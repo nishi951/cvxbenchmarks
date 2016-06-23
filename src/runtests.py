@@ -29,6 +29,7 @@ class ProblemThread(threading.Thread):
 
 			try:
 				start = time.time() # Time the solve
+				# print "starting",self.probID,"with config",configID,"at",start
 				self.prob.solve(**config)
 				runtime = time.time() - start
 				status = self.prob.status
@@ -66,7 +67,8 @@ if cmd_folder not in sys.path:
 
 
 # Create solver configurations
-configs ={solver : {"solver": solver} for solver in ['CVXOPT', 'ECOS_BB', 'SCS', 'ECOS']}
+
+configs ={solver : {"solver": solver} for solver in ['MOSEK', 'CVXOPT', 'SCS', 'ECOS']}
 problemDict = {}
 
 
@@ -104,6 +106,7 @@ for problemID in problemDict:
 	# Set (config, problem) off on its own thread
 	if __name__ == "__main__":
 		# try:
+		# print "started thread", problemID
 		problemDict[problemID].start()
 		# except:
 			# print "Error: unable to start thread."
@@ -114,7 +117,9 @@ for problemID in problemDict:
 
 # Wait for threads to finish:
 for problemID in problemDict:
+
 	problemDict[problemID].join()
+	# print "ended thread", problemID
 
 # Display results
 
