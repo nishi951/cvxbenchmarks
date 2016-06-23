@@ -2,40 +2,59 @@ from cvxpy import *
 import numpy as np
 import threading
 import time
+import os, sys, inspect
+import pandas as pd
 
+
+# check runtime:
+startall = time.time()
 
 # Class for threading a single problem through multiple solver configurations.
 class ProblemThread(threading.Thread):
 	"""A cvxpy thread-safe problem solving object."""
-	def __init__(self, probID, prob):
+	def __init__(self, probID, prob, configs):
 		threading.Thread.__init__(self)
 		self.probID = probID
 		self.prob = prob
-		self.time = -1
+		self.configs = configs
 
-	def run(self, configID, config, outputDict):
-		# Apply lock on the prob object
-		probLock.acquire()
-		start = time.time() # Time the solve
-		self.prob.solve(**config)
-		self.time = time.time() - start
-		self.writeResults(configID, outputDict)
-		# Free lock to release next thread
-		probLock.release()
+	def run(self):
+		for configID in configs:
+			config = configs[configID]
+			# output = {}
+			# Default values:
+			runtime = "-"
+			status = "-"
+			opt_val = "-"
 
-	def writeResults(self, configID, outputDict):
-		resultsList = [
-			self.prob.status,
-			self.prob.value,
-			self.time
-		]
-		outputDict[(self.probID, configID)] = resultsList # Thread-safe via GIL
+			try:
+				start = time.time() # Time the solve
+				self.prob.solve(**config)
+				runtime = time.time() - start
+				status = self.prob.status
+				opt_val = self.prob.value
+			except:
+				# Configuration could not solve the given problem
+				print "failure in solving."
+			# output["status"] = status
+			# output["opt_val"] = opt_val
+			# output["time"] = runtime
+			outputLock.acquire()
+			problemOutputs.loc[:, self.probID, configID] = [status, runtime, opt_val]
+			outputLock.release()
+	# def writeResults(self, configID, outputDict):
+	# 	"""Modify to change what results we record."""
+	# 	resultsList = [
+	# 		self.prob.status,
+	# 		self.prob.value,
+	# 		self.time
+	# 	]
+	# 	problemOutputs[(self.probID, configID)] = resultsList # Thread-safe via GIL
 
-# Lock for the problem thread
-probLock = threading.Lock()
+# Lock for the outputDict:
+outputLock = threading.Lock()
 
 # Read in problems
-import os, sys, inspect
 # cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
 # if cmd_folder not in sys.path:
 #     sys.path.insert(0, cmd_folder)
@@ -45,10 +64,12 @@ cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect
 if cmd_folder not in sys.path:
 	sys.path.insert(0, cmd_folder)
 
-print sys.path
 
-print cmd_folder
+# Create solver configurations
+configs ={solver : {"solver": solver} for solver in ['CVXOPT', 'ECOS_BB', 'SCS', 'ECOS']}
 problemDict = {}
+
+
 for dirname, dirnames, filenames in os.walk(cmd_folder):
 	# print path to all subdirectories first.
 	# for subdirname in dirnames:
@@ -57,58 +78,50 @@ for dirname, dirnames, filenames in os.walk(cmd_folder):
 	for filename in filenames:
 		# print filename
 		if filename[-3:] == ".py" and filename != "__init__.py":
-			# Dynamic imports:
 			problemID = filename[0:-3]
-			print problemID
-			problemDict[problemID] = __import__(problemID).prob # prob is the variable name
+			# Set up thread and lock for this problem
+			problemDict[problemID] = ProblemThread(problemID, __import__(problemID).prob, configs)
+			# for configID in configs:
+			# 	problemOutputs[(problemID, configID)] = {} # Populate in advance.
 	# Advanced usage:
-	# editing the 'dirnames' list will stop os.walk() from recursing into there.
+	# editing the 'dirnames' list will stop os.walk() from recursing ipnto there.
 	# if '.git' in dirnames:
 	# 	# don't go into any .git directories.
 	# 	dirnames.remove('.git')
+problemOutputs = pd.Panel(	items = ["status", "time","opt_val"], 
+							major_axis = [problemID for problemID in problemDict], 
+							minor_axis = [config for config in configs])
 
-# Create solver configurations
-# print len(problems)
-
-configs ={solver : {"solver": solver} for solver in ['ECOS_BB', 'SCS', 'ECOS']}
 
 # Run every solver configuration against every problem and save the results
-outputDict = {}
+
+# Set up threads and locks:
+# for problemID in problemDict:
+# 	problemLocks[problemID] = threading.Lock()
+# 	problemDict[problemID] = ProblemThread(problemID, problemDict[problemID])
+
 for problemID in problemDict:
-	probThread = ProblemThread(problemID, problemDict[problemID])
-	for configID in configs:
-		# Set (config, problem) off on its own thread
-		if __name__ == "__main__":
-			# try:
-				probThread.run(configID, configs[configID], outputDict)
-			# except:
-				# print "Error: unable to start thread."
+	# Set (config, problem) off on its own thread
+	if __name__ == "__main__":
+		# try:
+		problemDict[problemID].start()
+		# except:
+			# print "Error: unable to start thread."
 
-		# problem.solve(**config)
-		# print problem.status
-		# print problem.value
+	# problemDict[problemID].solve(**(configs[configID]))
+	# print problem.status
+	# print problem.value
+
+# Wait for threads to finish:
+for problemID in problemDict:
+	problemDict[problemID].join()
+
+# Display results
+
+# for key in problemOutp:
+# 	print key, ":", problemOutput[key]
+
+print problemOutputs.to_frame()
 
 
-for key in outputDict:
-	print key, ":", outputDict[key]
-
-
-# # Test:
-
-
-# m = 20
-# n = 10
-# np.random.seed(1)
-
-# x = Variable(n)
-# A = np.random.rand(m, n)
-# b = np.random.rand(m)
-
-# objective = Minimize(sum_squares(A*x - b))
-# prob = Problem(objective)
-
-# for config in configs:
-# 	prob.solve(**config)
-# 	print "status:", prob.status
-# 	print "optimal value", prob.value
-
+print "Runtime:",str(time.time() - startall)

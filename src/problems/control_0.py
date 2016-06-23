@@ -29,7 +29,7 @@ prob = sum(states)
 prob.constraints += [x[:,T] == 0, x[:,0] == x_0]
 
 
-# prob.solve()
+# prob.solve(solver = "CVXOPT")
 
 # print "status:", prob.status
 # print "optimal value", prob.value
