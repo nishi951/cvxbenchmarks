@@ -1,0 +1,18 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+m = {{ base }}
+n = 10*m
+np.random.seed({{ seed }})
+
+x = Variable(n)
+A = np.random.rand(m, n)
+b = np.random.rand(m)
+{% endblock %}
+
+{% block problem %}
+objective = Minimize(c*x)
+constraints = [A*x == b, x >= 0]
+
+prob = Problem(objective, constraints)
+{% endblock %}

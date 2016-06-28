@@ -1,0 +1,17 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+n = {{ base }}
+m = 10 * n
+np.random.seed({{ seed }})
+
+x = Variable(n)
+A = np.random.rand(m, n)
+b = np.random.rand(m)
+{% endblock %}
+
+{% block problem %}
+objective = Minimize(sum_squares(A*x - b))
+prob = Problem(objective)
+{% endblock %}
+

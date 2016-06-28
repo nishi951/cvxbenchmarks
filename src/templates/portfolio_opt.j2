@@ -1,0 +1,24 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+np.random.seed({{ seed }})
+n = {{ base }}
+gamma = 1
+
+mu = np.exp(np.random.normal(0, 1, n))
+# Generate S as FF^T + D
+F = np.random.normal(0, 0.1, [n, n])
+D = np.diag(0.1*np.random.rand(n)+ 0.1)
+
+S = F*F.T + D
+
+x = Variable(n)
+{% endblock %}
+
+
+{% block problem %}
+objective = Maximize(mu*x - gamma*quad_form(x,S))
+constraints = [sum_entries(x) == 1, x >= 0]
+
+prob = Problem(objective, constraints)
+{% endblock %}

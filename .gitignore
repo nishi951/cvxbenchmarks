@@ -1,1 +1,8 @@
 *.pyc
+problems/
+
+*~
+.DS_Store
+*~
+*#
+.#*

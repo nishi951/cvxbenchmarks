@@ -15,7 +15,6 @@ Lambda = 5
 x = Variable(n)
 
 objective = Minimize(0.5*sum_squares(A*x - b) + Lambda*pnorm(x, 1))
-
 prob = Problem(objective)
 
 # prob.solve()

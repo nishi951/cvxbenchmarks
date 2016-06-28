@@ -1,0 +1,19 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+n = {{ base }}
+m = 10*n
+
+np.random.seed(1)
+
+A = np.random.rand(m, n)
+b = np.random.rand(m)
+Lambda = 5
+
+x = Variable(n)
+{% endblock %}
+
+{% block problem %}
+objective = Minimize(0.5*sum_squares(A*x - b) + Lambda*pnorm(x, 1))
+prob = Problem(objective)
+{% endblock %}
