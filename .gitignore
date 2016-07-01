@@ -5,4 +5,9 @@ problems/
 .DS_Store
 *~
 *#
-.#*
+.#
+*randomConeProb.py
+src/cvxpy/
+src/test.py
+
+
