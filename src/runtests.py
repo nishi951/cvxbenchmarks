@@ -1,30 +1,71 @@
-import cvxpy as cvx
+# import cvxpy as cvx
 import numpy as np
 import multiprocessing as mp
 import time
 import os, sys, inspect
 import pandas as pd
 
+# Use local repository:
+cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
+if cvxfolder not in sys.path:
+    sys.path.insert(0, cvxfolder)
+import cvxpy as cvx
+print cvx
+
 def computeResidualStats(problem):
-    """compute the average absolute residual and the maximum residual"""
+    """Computes the average absolute residual and the maximum residual
+    """
+    if len(problem.constraints) == 0:
+        return ("-", "-")
     sum_residuals = 0
     max_residual = 0
-    nresiduals = 0
+    n_residuals = 0
     for constraint in problem.constraints:
-        # if constraint.__class__.__name__ is "LeqConstraint":
-        # compute average absolute residual:
-        nresiduals += np.prod(constraint._expr.size)
-        sum_residuals += np.absolute(constraint._expr.value).sum()
-        # get max absolute residual:
-        thismax = np.absolute(constraint._expr.value).max()
+        res = constraint.residual.value
+        thismax = 0
+
+        # Compute average absolute residual:
+        if isinstance(res, np.matrix):
+            n_residuals += np.prod(res.size)
+            sum_residuals += res.sum()
+            thismax = np.absolute(res).max()
+        elif isinstance(res, float) or isinstance(res, int):
+            # res is a float
+            n_residuals += 1
+            thismax = np.absolute(res)
+        else:
+            print "Unknown residual type:", type(res)
+
+        # Get max absolute residual:
         if max_residual < thismax:
             max_residual = thismax
-    if nresiduals is 0:
+
+    return (sum_residuals/n_residuals, max_residual)
+
+def computeConstantStats(problem):
+    """Computes the number of constant data values used and the 
+    length of the longest side of a matrix of all the constants.
+    """
+    if len(problem.constants()) == 0:
         return ("-", "-")
-    else:
-        return (sum_residuals/nresiduals, max_residual)
-
-
+    max_length = 0
+    n_data = 0
+    for const in problem.constants():
+        thismax = 0
+        # Compute number of data
+        if isinstance(const, np.matrix):
+            n_data += np.prod(const.size)
+            thismax = max(const.shape)
+        elif isinstance(const, float) or isinstance(const, int):
+            # const is a float
+            n_data += 1
+            thismax = 1
+        else:
+            print "Unknown constant type:", type(const)
+        # Get max absolute residual:
+        if max_length < thismax:
+            max_length = thismax
+    return (n_data, max_length)
 
 # Worker function
 # Modelled after:
@@ -47,12 +88,33 @@ def worker(problemID, problem, configs):
             runtime = time.time() - start
             status = problem.status
             opt_val = problem.value
-            # Record residual gross stats:
-            avg_abs_resid, max_resid = computeResidualStats(problem)
         except:
             # Configuration could not solve the given problem
             print "failure in solving."
-        outdict[(problemID, configID)] = [status, opt_val, runtime, avg_abs_resid, max_resid];
+
+        # Record residual gross stats:
+        avg_abs_resid, max_resid = computeResidualStats(problem)
+
+        # Record the number of variables:
+        n_vars = sum(np.prod(var.size) for var in problem.variables())
+
+        # Record the number of constraints:
+        n_eq = problem.n_eq()
+        n_leq = problem.n_leq()
+
+        # Record constant stats
+        n_data, n_big = computeConstantStats(problem)
+        outdict[(problemID, configID)] = [  status, 
+                                            opt_val, 
+                                            runtime, 
+                                            avg_abs_resid, 
+                                            max_resid,
+                                            n_vars,
+                                            n_eq,
+                                            n_leq,
+                                            n_data,
+                                            n_big
+        ]
     return outdict
 
 
@@ -62,7 +124,7 @@ problemDict = {}
 
 # Read in problems
 # http://stackoverflow.com/questions/279237/import-a-module-from-a-relative-path
-cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"problems")))
+cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"problems_old")))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
@@ -96,8 +158,13 @@ if __name__ == "__main__":
                 "opt_val",          # The optimal value of the solution
                 "time",             # The amount of time it took to solve the problem
                 "avg_abs_resid",    # The average absolute residual for LeqConstraints
-                "max_resid"     # The maximum absolute residual for LeqConstraints
-    ]           
+                "max_resid",        # The maximum absolute residual for LeqConstraints
+                "n_vars",           # The number of variables in the problem
+                "n_eq",             # The number of equality constraints in the problem.
+                "n_leq",            # The number of inequality constraints in the problem.
+                "n_data",           # The number of data values in constants in the problem.
+                "n_big",            # The length of the largest dimension of any matrix
+    ]
     problemList = [problemID for problemID in problemDict]
     configList = [config for config in configs]
 
