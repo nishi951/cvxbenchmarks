@@ -138,7 +138,7 @@ class TestFramework(object):
         self.generate_test_instances()
 
         # workers = multiprocessing.cpu_count()/2
-        workers = 2
+        workers = 8
 
         # create two queues: one for files, one for results
         work_queue = multiprocessing.Queue()
@@ -188,6 +188,7 @@ class TestFramework(object):
         dummy = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
         attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
         size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and label[0].endswith('__'))]
+       
         labels += size_metrics_labels
 
         # Remove unused columns
@@ -227,6 +228,8 @@ class TestFramework(object):
                 error.loc[problemID, configID] = absdiff/(abstol + absmosek)
         output["error"] = error
         
+        print output.axes
+
         return output
 
 
@@ -324,19 +327,6 @@ class TestInstance(object):
     def __init__(self, testproblem, config):
         self.testproblem = testproblem
         self.config = config
-
-
-        # Results
-        # self.results = {}
-
-        # self.results["time"] = None
-        # self.results["status"] = None
-        # self.results["opt_val"] = None
-        # self.results["avg_abs_resid"] = None
-        # self.results["max_resid"] = None
-        # self.results["size_metrics"] = None
-
-        return
 
     def run(self):
         """Runs the problem instance against the solver configuration.
@@ -446,8 +436,6 @@ class TestResults(object):
         self.max_resid = None
         self.size_metrics = None
 
-    def do_nothing(self):
-        pass
 
 
 
