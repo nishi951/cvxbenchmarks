@@ -30,17 +30,6 @@ class ProblemTemplate(object):
         <problemID>.j2
     paramFile : string
         The file path to the file containing the parameters for the instances of this template.
-        
-        The format of the parameter files is:
-        - One tuple at the beginning containing the names of the parameters.
-        - After that, one tuple for each problem instance that the person wants to generate.
-
-        Example:
-        (m, n, seed) = (20, 30, 1), (3, 300, 1), (4, 4000, 1)
-
-        will generate three instances of a template with fields "m", "n" and "seed" with the
-        corresponding values (20, 30, 1), (3, 300, 1), and (4, 4000, 1)
-
     template : jinja2.template
         The problem template that can be rendered to produce the problem instances, after filling
         the parameters specified in params.
@@ -58,6 +47,8 @@ class ProblemTemplate(object):
 
     def read_template(self, templateDir):
         """Read in the template.
+        Ex. If the template is stored in the file "least_squares.j2" in the folder
+        "templates", then self.problemID should be "least_squares" and templateDir should be "templates".
         """
         temp = None
         try:
@@ -71,6 +62,16 @@ class ProblemTemplate(object):
 
     def read_params(self):
         """Read in the parameters.
+
+        The format of the parameter files is:
+        - One tuple at the beginning containing the names of the parameters.
+        - After that, one tuple for each problem instance that the person wants to generate.
+
+        Example:
+        (m, n, seed) = (20, 30, 1), (3, 300, 1), (4, 4000, 1)
+
+        will generate three instances of a template with fields "m", "n" and "seed" with the
+        corresponding values (20, 30, 1), (3, 300, 1), and (4, 4000, 1)
         """
         paramDicts = []
         paramList = []
@@ -156,45 +157,10 @@ class Index(object):
                 # print filename
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     problemID = filename[0:-3]
+                    print problemID
                     problem = (__import__(problemID).prob)
-                    problems[problemID] = Index.compute_problem_stats(problem)
+                    problems[problemID] = problem.size_metrics
         return problems
-
-    @classmethod
-    def compute_problem_stats(self, problem):
-        """Computes the values of the tags required to catagorize this problem.
-
-        Parameters
-        ----------
-        problem : cvxpy.Problem
-            The problem we want to analyze.
-        """
-        stats = {}
-
-        # n_vars
-        stats["n_vars"] = problem.n_variables()
-
-        # n_constants
-        n_data = 0
-        for const in problem.constants():
-            thismax = 0
-            # Compute number of data
-            if isinstance(const, np.matrix):
-                n_data += np.prod(const.size)
-                thismax = max(const.shape)
-            elif isinstance(const, float) or isinstance(const, int):
-                # const is a float
-                n_data += 1
-                thismax = 1
-            else:
-                print "Unknown constant type:", type(const)
-        stats["n_constants"] = n_data
-
-        # n_constraints
-        stats["n_constraints"] = problem.n_eq() + problem.n_leq()
-
-        return stats
-
 
     def write(self, filename = "index.txt"):
         """Writes descriptions of the problems in self.problems to a text file.
@@ -212,9 +178,9 @@ class Index(object):
             n_constraints: <number of constraints>
         """
         with open(filename, "w") as f:
-            for problemID in self.problems:
+            for problemID,stats in self.problems.items():
                 out = problemID + "\n" + \
-                "\tn_vars: " + str(self.problems["n_vars"]) + "\n" + \
-                "\tn_constants: " + str(self.problems["n_constants"]) + "\n" + \
-                "\tn_constraints: " + str(self.problems["n_constraints"]) + "\n"
+                "\tn_vars: " + str(stats.num_scalar_variables) + "\n" + \
+                "\tn_constants: " + str(stats.num_scalar_data) + "\n" + \
+                "\tn_constraints: " + str(stats.num_scalar_eq_constr + stats.num_scalar_leq_constr) + "\n"
                 f.write(out)

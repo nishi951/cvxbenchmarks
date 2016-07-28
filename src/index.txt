@@ -1,0 +1,60 @@
+lp_0
+	n_vars: 50
+	n_constants: 1071
+	n_constraints: 70
+lasso_0
+	n_vars: 50
+	n_constants: 1023
+	n_constraints: 0
+lasso_1
+	n_vars: 20
+	n_constants: 6303
+	n_constraints: 0
+lasso_2
+	n_vars: 20
+	n_constants: 843
+	n_constraints: 0
+control_0
+	n_vars: 508
+	n_constants: 4050
+	n_constraints: 450
+portfolio_opt_0
+	n_vars: 10
+	n_constants: 116
+	n_constraints: 11
+lp_1
+	n_vars: 300
+	n_constants: 9331
+	n_constraints: 330
+portfolio_opt_2
+	n_vars: 50
+	n_constants: 2556
+	n_constraints: 51
+control_1
+	n_vars: 1220
+	n_constants: 24050
+	n_constraints: 1050
+portfolio_opt_1
+	n_vars: 40
+	n_constants: 1646
+	n_constraints: 41
+lp_2
+	n_vars: 90
+	n_constants: 6461
+	n_constraints: 160
+least_squares_0
+	n_vars: 100
+	n_constants: 10101
+	n_constraints: 0
+least_squares_1
+	n_vars: 20
+	n_constants: 631
+	n_constraints: 0
+least_squares_2
+	n_vars: 200
+	n_constants: 60301
+	n_constraints: 0
+control_2
+	n_vars: 710
+	n_constants: 7050
+	n_constraints: 550

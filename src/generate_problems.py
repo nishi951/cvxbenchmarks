@@ -9,9 +9,12 @@ templates = [
     "lp"
 ]
 
+# Generate problems from templates
 for problemID in templates:
     paramFile = os.path.join("templates", problemID+"_params.txt")
-    reader = pg.TemplateReader(problemID, paramFile)
-    template, params = reader.read()
-    writer = pg.ProblemWriter(template, params)
-    writer.write(problemID, "problems")
+    templ = pg.ProblemTemplate(problemID, paramFile)
+    templ.write("problems")
+
+# Generate index file
+index = pg.Index("problems")
+index.write()

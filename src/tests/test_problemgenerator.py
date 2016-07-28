@@ -62,6 +62,10 @@ class TestIndex(BaseTest):
         ref = {'n_vars': 100, 'n_constraints': 0, 'n_constants': 10101}
         self.assertEqual(ans, ref)
 
+    def test_write(self):
+        """Tests the write method.
+        """
+        self.index.write()
 
 
 

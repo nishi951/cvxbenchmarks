@@ -15,8 +15,6 @@ print cvx
 def computeResidualStats(problem):
     """Computes the average absolute residual and the maximum residual
     """
-    if len(problem.constraints) == 0:
-        return ("-", "-")
     sum_residuals = 0
     max_residual = 0
     n_residuals = 0
@@ -33,13 +31,17 @@ def computeResidualStats(problem):
             # res is a float
             n_residuals += 1
             thismax = np.absolute(res)
+        elif isinstance(res, type(None)):
+            # res is None
+            continue
         else:
             print "Unknown residual type:", type(res)
 
         # Get max absolute residual:
         if max_residual < thismax:
             max_residual = thismax
-
+    if n_residuals == 0:
+        return ("-", "-")
     return (sum_residuals/n_residuals, max_residual)
 
 def computeConstantStats(problem):
@@ -124,7 +126,7 @@ problemDict = {}
 
 # Read in problems
 # http://stackoverflow.com/questions/279237/import-a-module-from-a-relative-path
-cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"problems_old")))
+cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"problems")))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
