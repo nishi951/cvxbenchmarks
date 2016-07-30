@@ -49,6 +49,15 @@ class ProblemTemplate(object):
         """Read in the template.
         Ex. If the template is stored in the file "least_squares.j2" in the folder
         "templates", then self.problemID should be "least_squares" and templateDir should be "templates".
+
+        Parameters
+        ----------
+        templateDir - The 
+
+        Returns
+        -------
+        temp : jinja2.Template
+            The template stored in the file.
         """
         temp = None
         try:
@@ -72,6 +81,11 @@ class ProblemTemplate(object):
 
         will generate three instances of a template with fields "m", "n" and "seed" with the
         corresponding values (20, 30, 1), (3, 300, 1), and (4, 4000, 1)
+
+        Returns
+        -------
+        paramDicts : dictionary
+            The parameters stored in the file.
         """
         paramDicts = []
         paramList = []
@@ -132,7 +146,9 @@ class Index(object):
         The directory from which problems are being read.
     """
     def __init__(self, problemsDir = "problems"):
-        """problemsDir defaults to 'problems'"""
+        """Initialize the index by reading in all the problems in problemsDir.
+        problemsDir defaults to 'problems'
+        """
         problemsDir = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0], problemsDir)))
         if problemsDir not in sys.path:
             sys.path.insert(0, problemsDir)
@@ -147,7 +163,12 @@ class Index(object):
         Parameters
         ----------
         problemsDir : string
-            The name of the directory that contains the problems we want to read. 
+            The name of the directory that contains the problems we want to read.
+
+        Returns
+        -------
+        problems : dictionary mapping string to cvxpy.Problem
+            The problems in problemsDir, organized by problemID.
         """
         problems = {}
 

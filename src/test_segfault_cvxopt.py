@@ -13,7 +13,7 @@ import numpy as np
 np.random.seed(1)
 m = 2 # number of inputs
 n = 8 # number of states
-T = 15 # number of time steps
+T = 50 # number of time steps
 alpha = 0.2
 beta = 5
 A = np.eye(n) + alpha*np.random.randn(n,n)
