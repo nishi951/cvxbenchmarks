@@ -58,10 +58,8 @@ class TestFramework(object):
     ----------
     problemDir : string
         Directory containing desired problem files.
-        Currently, this directory must be a subdirectory of the current frame.
     configDir : string
         Directory containing desired config files.
-        Currently, this directory must be a subdirectory of the current frame.
     problems : list of TestFramework.TestProblem
         list of problems to solve.
     configs : list of TestFramework.SolverConfiguration
@@ -118,7 +116,6 @@ class TestFramework(object):
         """
         for dirname, dirnames, filenames in os.walk(self.problemDir):
             for filename in filenames:
-                # print filename
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     problemID = filename[0:-3]
                     self.load_problem(problemID)
@@ -161,7 +158,7 @@ class TestFramework(object):
 
     def solve_all_parallel(self):
         """Solves all test instances in parallel and reports the results.
-        CONTAINS BUGS! DO NOT USE! ESPECIALLY WHEN USING THE CVXOPT SOLVER!
+        DO NOT USE WHEN USING THE CVXOPT SOLVER!
         """
         self.generate_test_instances()
 
@@ -361,7 +358,7 @@ class TestProblem(object):
         Parameters
         ----------
         problemID : string
-            A unique identifier for this problem. Problem file should be fo the form <problemID>.py.
+            A unique identifier for this problem. Problem file should be of the form <problemID>.py.
         problemDir : string
             The directory where the problem files are located.
 
@@ -369,10 +366,12 @@ class TestProblem(object):
         -------
         TestProblem - the newly created TestProblem object.
         """
-        cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0], problemDir)))
-        if cmd_folder not in sys.path:
-            sys.path.insert(0, cmd_folder)
+        if problemDir not in sys.path:
+            sys.path.insert(0, problemDir)
         return TestProblem(problemID, __import__(problemID).prob)
+
+    def __eq__(self, other):
+        return self.id == other.id and self.problem == other.problem
 
 
 
@@ -405,20 +404,25 @@ class SolverConfiguration(object):
 
         Parameters
         ----------
-        problemID : string
-            A unique identifier for this problem. Problem file should be fo the form <problemID>.py.
-        problemDir : string
-            The directory where the problem files are located.
+        configID : string
+            A unique identifier for this config. Config file should be of the form <configID>.py.
+        configDir : string
+            The directory where the config files are located.
 
         Returns
         -------
         SolverConfiguration - the newly created SolverConfiguration object.
         """
-        cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0], configDir)))
-        if cmd_folder not in sys.path:
-            sys.path.insert(0, cmd_folder)
+        if configDir not in sys.path:
+            sys.path.insert(0, configDir)
         configObj = __import__(configID)
         return SolverConfiguration(configID, configObj.solver, configObj.verbose, configObj.kwargs)
+
+    def __eq__(self, other):
+        return (self.id == other.id) and \
+               (self.solver == other.solver) and \
+               (self.verbose == other.verbose) and \
+               (self.kwargs == other.kwargs)
 
 
 

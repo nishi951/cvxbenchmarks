@@ -2,6 +2,7 @@
 from jinja2 import Environment, FileSystemLoader
 import re, os, sys, inspect
 import numpy as np
+import pandas as pd
 
 cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
 if cvxfolder not in sys.path:
@@ -134,14 +135,9 @@ class Index(object):
 
     Attributes
     ----------
-    problems : dictionary mapping strings to dictionaries
-        Maps problemIDs to dictionaries of tags that denote various properties of the problem.
-        Fields:
-            n_vars : the number of variables in the problem
-            n_constants : the number of data values in the problem
-            n_constraints : the number of constraints in the problem
-            size : TODO - a rough measure of size that will be either "small", "medium", or "large
-            complexity : TODO - a measure of solve time (big*small^2)
+    problems : pandas.DataFrame
+        Index = 
+
     problemsDir : string
         The directory from which problems are being read.
     """
@@ -167,11 +163,10 @@ class Index(object):
 
         Returns
         -------
-        problems : dictionary mapping string to cvxpy.Problem
+        problems : pandas.DataFrame
             The problems in problemsDir, organized by problemID.
         """
-        problems = {}
-
+        problem_list = []
         # Might need to be parallelized:
         for dirname, dirnames, filenames in os.walk(problemsDir):
             for filename in filenames:
@@ -180,7 +175,9 @@ class Index(object):
                     problemID = filename[0:-3]
                     print problemID
                     problem = (__import__(problemID).prob)
-                    problems[problemID] = problem.size_metrics
+                    next = pd.Series(problem.size_metrics.__dict__, name = problemID)
+                    problem_list.append(next)
+        problems = pd.DataFrame(problem_list)
         return problems
 
     def write(self, filename = "index.txt"):
@@ -190,18 +187,10 @@ class Index(object):
         ----------
         filename : string
             The name of the file to write the index to. Defaults to "index.txt".
-
-        Format of the index file:
-        For each problem:
-        <problem name>
-            n_vars: <number of variables>
-            n_constants: <number of constants>
-            n_constraints: <number of constraints>
         """
+        from tabulate import tabulate
         with open(filename, "w") as f:
-            for problemID,stats in self.problems.items():
-                out = problemID + "\n" + \
-                "\tn_vars: " + str(stats.num_scalar_variables) + "\n" + \
-                "\tn_constants: " + str(stats.num_scalar_data) + "\n" + \
-                "\tn_constraints: " + str(stats.num_scalar_eq_constr + stats.num_scalar_leq_constr) + "\n"
-                f.write(out)
+            f.write(tabulate(self.problems, headers = "keys", tablefmt = "psql"))
+
+
+

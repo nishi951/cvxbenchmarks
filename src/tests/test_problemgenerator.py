@@ -2,6 +2,7 @@
 from src.ProblemGenerator import ProblemTemplate, Index
 from src.tests.base_test import BaseTest
 import sys, os, inspect
+import pandas as pd
 
 
 class TestProblemTemplate(BaseTest):
@@ -41,31 +42,20 @@ class TestIndex(BaseTest):
         """Tests the read_problems method.
         """
         # Note that Index.__init__() calls read_problems already:
-        ref = {"least_squares_0": {"n_vars": 100,
-                                   "n_constants": 10101,
-                                   "n_constraints": 0} 
-        }
-        print self.index
-        self.assertEqual(self.index.problems, ref)
+        ref_max_big_small_squared = 20000
+        ref_max_data_dimension = 50
+        ref_num_scalar_data = 1071
+        ref_num_scalar_eq_constr = 20
+        ref_num_scalar_leq_constr = 50
+        ref_num_scalar_variables = 50
+        
+        self.assertEqual(self.index.problems.loc["lp_0","max_big_small_squared"], ref_max_big_small_squared)
+        self.assertEqual(self.index.problems.loc["lp_0","max_data_dimension"], ref_max_data_dimension) 
+        self.assertEqual(self.index.problems.loc["lp_0","num_scalar_data"], ref_num_scalar_data)
+        self.assertEqual(self.index.problems.loc["lp_0","num_scalar_eq_constr"], ref_num_scalar_eq_constr)
+        self.assertEqual(self.index.problems.loc["lp_0","num_scalar_leq_constr"], ref_num_scalar_leq_constr)
+        self.assertEqual(self.index.problems.loc["lp_0","num_scalar_variables"], ref_num_scalar_variables)
 
-    def test_compute_problem_stats(self):
-        """Tests the compute_problem_stats class method.
-        """
-        ref = {}
-        cmd_folder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0], self.problemsDir)))
-        if cmd_folder not in sys.path:
-            sys.path.insert(0, cmd_folder)
-        problemID = "least_squares_0"
-        problem = (__import__(problemID).prob)
-        # print "problem:",problem
-        ans = Index.compute_problem_stats(problem)
-        ref = {'n_vars': 100, 'n_constraints': 0, 'n_constants': 10101}
-        self.assertEqual(ans, ref)
-
-    def test_write(self):
-        """Tests the write method.
-        """
-        self.index.write()
 
 
 

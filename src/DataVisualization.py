@@ -14,12 +14,19 @@ def plot_performance_profile(results, rel_max = 10e10):
     for config in results.axes[2]:
         num_problems = len(results.axes[1])
         x = sorted(results.loc["performance", :, config]) 
-        y = [len([val for val in x if val < tau])/float(num_problems) for tau in x]
-        
-        # Extend the line all the way to the right.
+        y = [len([val for val in x if val <= tau])/float(num_problems) for tau in x]
+        print x
+        print y
+        # Extend the line all the way to the left. (DO THIS FIRST)
+        y = [len([val for val in x if val <= 1.0])/float(num_problems)] + y
+        x = [1.0] + x
+        # Extend the line all the way to the right. (DO THIS SECOND)
         x += [rel_max] 
         y += [y[-1]]
-        plt.step(x, y, label = config)
+        # Step plot stuff:
+        # http://joelotz.github.io/step-functions-in-matplotlib.html
+        plt.step(x, y, label = config, drawstyle = "steps-post")
+
 
     plt.legend(loc = 'lower right')
     plt.xlim(1, 100)
