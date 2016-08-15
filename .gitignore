@@ -1,5 +1,5 @@
 *.pyc
-problems/
+cvxbenchmarks/problems/*
 
 *~
 .DS_Store
@@ -7,7 +7,7 @@ problems/
 *#
 .#
 *randomConeProb.py
-src/cvxpy/
-src/test.py
+cvxbenchmarks/cvxpy/
+cvxbenchmarks/test.py
 
 

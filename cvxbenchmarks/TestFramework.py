@@ -9,14 +9,15 @@ import math
 STOP = "STOP" # Poison pill for parallel solve subroutine.
 
 # Use local repository:
+
 cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
 if cvxfolder not in sys.path:
-    sys.path.insert(0, cvxfolder)
+    sys.path.insert(0, cvxfolder) 
 import cvxpy as cvx
 print cvx
 
 
-def worker(problemDir, configDir, work_queue, done_queue):
+def worker(problemDir, configDir, work_queue, done_queue): 
     """Worker function for multithreading the solving of test instances.
     Parameters
     ----------
@@ -57,6 +58,7 @@ class TestFramework(object):
     Attributes
     ----------
     problemDir : string
+
         Directory containing desired problem files.
     configDir : string
         Directory containing desired config files.
@@ -69,7 +71,7 @@ class TestFramework(object):
     results : list of TestFramework.TestResults
         list of results from running each test instance.
 
-    
+
     Workflow:
     Read in problems (TestProblem)
         Optional: Use index to filter for problems.
@@ -110,7 +112,6 @@ class TestFramework(object):
         """
         self.problems.append(TestProblem.from_file(problemID, self.problemDir))
 
-
     def preload_all_problems(self):
         """Loads all the problems in self.problemDir and adds them to self.test_problems.
         """
@@ -136,7 +137,6 @@ class TestFramework(object):
         """
         for dirname, dirnames, filenames in os.walk(self.configDir):
             for filename in filenames:
-                # print filename
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     configID = filename[0:-3]
                     self.load_config(configID)
@@ -177,14 +177,18 @@ class TestFramework(object):
 
         # start processes
         for w in xrange(workers):
-            p = multiprocessing.Process(target=worker, args=(self.problemDir, self.configDir, work_queue, done_queue))
+            p = multiprocessing.Process(target=worker,
+                                        args=(self.problemDir,
+                                              self.configDir,
+                                              work_queue,
+                                              done_queue))
             p.start()
             processes.append(p)
             work_queue.put((STOP,STOP))
 
         # wait until all processes finished
         for p in processes:
-            p.join(timeout = 5)
+            p.join()
 
         done_queue.put(STOP)
 
@@ -196,7 +200,6 @@ class TestFramework(object):
 
         for p in processes:
             print "process",p,"exited with code",p.exitcode
-
 
     def export_results_as_panel(self):
         """Convert results into a pandas panel object for easier data visualization
@@ -216,8 +219,9 @@ class TestFramework(object):
         # Unpack size_metrics label with another dummy
         dummy = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
         attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
-        size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and label[0].endswith('__'))]
-       
+        size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and \
+                                                                       label[0].endswith('__'))]
+
         labels += size_metrics_labels
 
         # Remove unused columns
@@ -338,7 +342,7 @@ class TestFramework(object):
 
 class TestProblem(object):
     """Expands the Problem class to contain extra details relevant to the testing architecture.
-    
+
     Attributes
     ----------
     id : string
@@ -372,7 +376,6 @@ class TestProblem(object):
 
     def __eq__(self, other):
         return self.id == other.id and self.problem == other.problem
-
 
 
 class SolverConfiguration(object):
@@ -415,7 +418,7 @@ class SolverConfiguration(object):
         """
         if configDir not in sys.path:
             sys.path.insert(0, configDir)
-        configObj = __import__(configID)
+        configObj = __import__(configID) 
         return SolverConfiguration(configID, configObj.solver, configObj.verbose, configObj.kwargs)
 
     def __eq__(self, other):
@@ -423,8 +426,6 @@ class SolverConfiguration(object):
                (self.solver == other.solver) and \
                (self.verbose == other.verbose) and \
                (self.kwargs == other.kwargs)
-
-
 
 
 class TestInstance(object):
@@ -438,7 +439,7 @@ class TestInstance(object):
        The problem to be solved.
     config : TestFramework.SolverConfiguration
        The configuration to use when solving this particular problem instance.
-    
+
     Results: dictionary
         Contains the following keys:
         solve_time :
@@ -494,7 +495,7 @@ class TestInstance(object):
         print "computed stats for", self.testproblem.id, "with config", self.config.id
         # Record problem metrics:
         results.size_metrics = problem.size_metrics
-        
+
         print "finished",self.testproblem.id,"with config",self.config.id,"at",time.time()-start
         return results
 
@@ -502,7 +503,7 @@ class TestInstance(object):
     def compute_residual_stats(self, problem):
         """Computes the average absolute residual and the maximum residual
         of the current problem.
-        
+
         Returns:
         --------
         avg_abs_resid : float or None
@@ -542,7 +543,6 @@ class TestInstance(object):
         if n_residuals == 0:
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
-
 
 
 class TestResults(object):

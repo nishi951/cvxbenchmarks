@@ -37,4 +37,5 @@ def plot_performance_profile(results, rel_max = 10e10):
     plt.ylabel(r'$P(r_{p,s} \leq \tau : 1 \leq s \leq n_s)$')
 
     plt.show()
+    print "Waiting for window to close."
 
