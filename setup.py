@@ -7,12 +7,12 @@ setup(
     author = 'Mark Nishimura, Steven Diamond, Stephen Boyd',
     author_email = 'markn1@stanford.edu',
     packages = ['cvxbenchmarks',
-                'cvxbenchmarks.tests']
-    package_dir = {'cvxbenchmarks': 'cvxbenchmarks'}
-    zip_safe = False
-    use_2to3 = True
+                'cvxbenchmarks.tests'],
+    package_dir = {'cvxbenchmarks': 'cvxbenchmarks'},
+    zip_safe = False,
+    use_2to3 = True,
     install_requires = ['cvxpy >= 0.4.2',
                         'pandas >= 0.18.1',
                         'tabulate >= 0.7.5',
                         ]
-    )
+)

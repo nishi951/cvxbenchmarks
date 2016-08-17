@@ -10,9 +10,10 @@ STOP = "STOP" # Poison pill for parallel solve subroutine.
 
 # Use local repository:
 
-cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
-if cvxfolder not in sys.path:
-    sys.path.insert(0, cvxfolder) 
+# cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
+# if cvxfolder not in sys.path:
+    # sys.path.insert(0, cvxfolder) 
+sys.path.insert(0, "/Users/mark/Documents/Stanford/reu2016/cvxpy")
 import cvxpy as cvx
 print cvx
 

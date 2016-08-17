@@ -1,6 +1,6 @@
 
-import src.TestFramework
-from src.tests.base_test import BaseTest
+import cvxbenchmarks.TestFramework
+from cvxbenchmarks.tests.base_test import BaseTest
 import sys, os, inspect
 
 TESTS_PROBLEM_DIR = "/Users/mark/Documents/Stanford/reu2016/project/src/tests/problems"

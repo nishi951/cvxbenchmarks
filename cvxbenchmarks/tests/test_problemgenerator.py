@@ -1,6 +1,6 @@
 
-from src.ProblemGenerator import ProblemTemplate, Index
-from src.tests.base_test import BaseTest
+from cvxbenchmarks.ProblemGenerator import ProblemTemplate, Index
+from cvxbenchmarks.tests.base_test import BaseTest
 import sys, os, inspect
 import pandas as pd
 
