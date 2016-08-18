@@ -6,8 +6,8 @@
 *#
 .#
 *randomConeProb.py
-cvxbenchmarks/cvxpy/
-cvxbenchmarks/test.py
+
+cvxbenchmarks/old
 
 # Packages
 *.egg

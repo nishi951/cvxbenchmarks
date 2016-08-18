@@ -281,8 +281,8 @@ class TestFramework(object):
         """
         abstol = 10e-4
         error = pd.DataFrame(index = results.axes[1], columns = results.axes[2])
-        for configID in results.axes[1]:
-            for problemID in results.axes[2]:
+        for configID in results.axes[2]:
+            for problemID in results.axes[1]:
                 absdiff = np.absolute((results.loc[opt_val, problemID, configID] - results.loc[opt_val, problemID, mosek_config]))
                 absmosek = np.absolute(results.loc[opt_val, problemID, mosek_config])
                 error.loc[problemID, configID] = absdiff/(abstol + absmosek)

@@ -37,7 +37,34 @@ import math
 # Generate performance profiles for all solver configurations
 
 # Graph performance profile:
+plt.figure()
 dv.plot_performance_profile(results)
+plt.draw()
+
+# Graph time vs. big(small)^2
+plt.figure()
+dv.plot_scatter_by_config_log(results, "max_big_small_squared", "solve_time")
+plt.draw()
+
+# Graph time vs. number of scalar variables
+plt.figure()
+dv.plot_scatter_by_config_log(results, "num_scalar_variables", "solve_time")
+plt.draw()
+# Graph time vs. number of scalar data
+plt.figure()
+dv.plot_scatter_by_config_log(results, "num_scalar_data", "solve_time")
+plt.draw()
+
+# Graph time vs. number of scalar constraints
+plt.figure()
+dv.plot_scatter_by_config_log(results, ["num_scalar_eq_constr", "num_scalar_leq_constr"], "solve_time")
+plt.draw()
+
+# Graph histogram of solve accuracies (relative to mosek)
+dv.plot_histograms_by_config(results)
+
+plt.show()
+
 
 
 
