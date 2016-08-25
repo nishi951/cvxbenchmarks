@@ -1,0 +1,18 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+import scipy.sparse as sps
+n = {{ n }}
+m = {{ m }}
+np.random.seed({{ seed }})
+
+x = cp.Variable(n)
+A = np.random.rand(m, n)
+x0 = sps.rand(n, 1, 0.1)
+
+b = A*x0
+{% endblock %}
+
+{% block problem %}
+prob = cp.Problem(cp.Minimize(cp.norm1(x)), [A*x == b])
+{% endblock %}

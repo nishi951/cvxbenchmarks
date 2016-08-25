@@ -12,14 +12,12 @@ import cvxpy as cvx
 print cvx
 
 # Format of the Parameter file:
-# One tuple at the beginning containing the names of the parameters.
-# After that, one tuple for each problem instance that the person wants to generate.
-
-# Example:
-# (m, n, seed) = (20, 30, 1), (3, 300, 1), (4, 4000, 1), etc.
-
-PARAM_REGEX = "(\((?:\w+)(?:,\s*\w+)*?\))"
-PARAM_PATTERN = re.compile(PARAM_REGEX)
+# Csv file readable by pandas
+# ex.
+# problemID, m, n, seed
+# "ls_0", 20, 30, 1
+# "ls_1", 40, 60, 1
+# "ls_big" 500, 600, 1
 
 
 class ProblemTemplate(object):
@@ -27,34 +25,35 @@ class ProblemTemplate(object):
 
     Attributes
     ----------
-    problemID : string
-        A unique identifier for this problem. The name of the template file is by default 
-        <problemID>.j2
-    paramFile : string
-        The file path to the file containing the parameters for the instances of this template.
-    template : jinja2.template
-        The problem template that can be rendered to produce the problem instances, after filling
-        the parameters specified in params.
-    params : list of dictionaries
-        A list of dictionaries, each one representing an instance of the problem template.
-        The data in the dictionaries corresponds to the fields in the template that 
-        need to be filled in.
+    IO Stuff:
+        templateFile : string
+            The actual file of the template. e.g. "lib/cvxbenchmarks/least_squares.j2"
+        paramFile : string
+            The file path to the file containing the parameters for the instances of this template.
+            e.g. "lib/cvxbenchmarks/least_squares_params.txt"
+        templateDir : string
+            The file containing the templateFile (necessary for jinja2 to find the template)
+
+    Generated:
+        template : jinja2.template
+            The problem template that can be rendered to produce the problem instances, after filling
+            the parameters specified in params.
+        params : pandas.DataFrame
+            Each row of the dataframe represents an instance of the problem template.
+            The data in the rows corresponds to the fields in the template that 
+            need to be filled in.
     """
 
-    def __init__(self, problemID, paramFile, templateDir = "templates"):
-        self.problemID = problemID
-        # self.templateFile = templateFile
+    def __init__(self, templateFile, paramFile, templateDir = os.path.join("lib", "cvxbenchmarks")):
+        self.templateFile = templateFile
         self.paramFile = paramFile
-        self.template, self.params = self.read(templateDir)
+        self.templateDir = templateDir
+        self.template, self.params = self.read()
 
-    def read_template(self, templateDir):
+    def read_template(self):
         """Read in the template.
         Ex. If the template is stored in the file "least_squares.j2" in the folder
         "templates", then self.problemID should be "least_squares" and templateDir should be "templates".
-
-        Parameters
-        ----------
-        templateDir - The 
 
         Returns
         -------
@@ -63,60 +62,31 @@ class ProblemTemplate(object):
         """
         temp = None
         try:
-            env = Environment(loader = FileSystemLoader(templateDir))
-            temp = env.get_template(self.problemID + ".j2")
+            env = Environment(loader = FileSystemLoader(self.templateDir))
+            temp = env.get_template(self.templateFile)
             return temp
         except Exception as e:
-            print "Problem locating template ",self.problemID+".j2 in",templateDir+". Check template file path."
+            print "Problem locating template",self.templateFile,"in",self.templateDir+". Check template file path."
             print e
             return temp
 
     def read_params(self):
-        """Read in the parameters.
-
-        The format of the parameter files is:
-        - One tuple at the beginning containing the names of the parameters.
-        - After that, one tuple for each problem instance that the person wants to generate.
-
-        Example:
-        (m, n, seed) = (20, 30, 1), (3, 300, 1), (4, 4000, 1)
-
-        will generate three instances of a template with fields "m", "n" and "seed" with the
-        corresponding values (20, 30, 1), (3, 300, 1), and (4, 4000, 1)
-
-        Returns
-        -------
-        paramDicts : dictionary
-            The parameters stored in the file.
+        """Read in the parameter file csv.
         """
-        paramDicts = []
-        paramList = []
-        f = None
+        self.params = None
         try:
-            with open(self.paramFile, "r") as f:
-                paramList = re.findall(PARAM_PATTERN, f.readline())
-                # Remove parentheses, spaces, and split on commas
-                paramNames = paramList[0].strip("()").replace(" ", "").split(",")
+            self.params = pd.read_csv(self.paramFile, skipinitialspace=True)
         except Exception as e:
             print "Problem loading parameters in",self.paramFile,". Check parameter file path."
             print e
-            return None
-        for instance in paramList[1:]:
-            paramVals = instance.strip("()").replace(" ", "").split(",")
-            try:
-                paramDicts.append(dict(zip(paramNames, paramVals)))
-            except Exception as e:
-                print "Problem loading parameters in ",self.paramFile,". Check all parameter instances."
-                print e
-                return None
-        return paramDicts
+        return self.params
 
-    def read(self, templateDir):
+    def read(self):
         """Read in the template and the parameters.
         """
-        return self.read_template(templateDir), self.read_params()
+        return self.read_template(), self.read_params()
 
-    def write(self, outputdir):
+    def write_to_dir(self, outputdir):
         """Write all the template instances to files.
 
         Parameters
@@ -124,9 +94,11 @@ class ProblemTemplate(object):
         outputdir : string
             The directory where the template instances should be written.
         """
-        for idx, args in enumerate(self.params):
-            with open(os.path.join(outputdir, self.problemID+"_"+str(idx)+".py"), "wb") as f:
-                f.write(self.template.render(args))
+        print self.params
+        for idx, row in self.params.iterrows():
+            instanceID = row["problemID"]
+            with open(os.path.join(outputdir, instanceID + ".py"), "wb") as f:
+                f.write(self.template.render(row.to_dict()))
 
 
 class Index(object):

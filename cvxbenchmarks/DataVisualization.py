@@ -49,7 +49,7 @@ def plot_performance_profile(results, rel_max = 10e10):
     plt.ylabel(r'$P(r_{p,s} \leq \tau : 1 \leq s \leq n_s)$')
 
 
-def plot_scatter_by_config_log(results, x_field, y_field):
+def plot_scatter_by_config(results, x_field, y_field, logx = False, logy = False):
     """Generic scatter plot for results panel.
     
     Parameters
@@ -62,20 +62,32 @@ def plot_scatter_by_config_log(results, x_field, y_field):
     y_field : list or string
         A list of fields in results (or a single string) to
         be summed and log-plotted on the y axis.
+    logx : Boolean
+        Whether or not to plot the x-axis on a log scale
+    logy : Boolean
+        Whether or not to plot the y-axis on a log scale
     """
     # Color-code by configuration
     config_colors = ['b', 'c', 'y', 'm', 'r']
     serieslist = []
     for i, config in enumerate(results.axes[2]):
         if type(x_field) is list:
-            x = np.log10(pd.DataFrame.sum(results.loc[x_field, :, config], axis = 1).values)
+            x = pd.DataFrame.sum(results.loc[x_field, :, config], axis = 1).values
         else:
-            x = np.log10(results.loc[x_field, :, config].values)
+            x = results.loc[x_field, :, config].values
         if type(y_field) is list:
-            y = np.log10(pd.DataFrame.sum(results.loc[y_field, :, config], axis = 1).values)
+            y = pd.DataFrame.sum(results.loc[y_field, :, config], axis = 1).values
         else:
-            y = np.log10(results.loc[y_field, :, config].values)
+            y = results.loc[y_field, :, config].values
+
+        # log scale or not:
+        ax = plt.gca()
         series = plt.scatter(x, y, marker = 'o', color = config_colors[i])
+        if logx:
+            ax.set_xscale("log")
+        if logy:
+            ax.set_yscale("log")
+
         serieslist.append(series)
 
     plt.legend(tuple(serieslist),
@@ -85,8 +97,8 @@ def plot_scatter_by_config_log(results, x_field, y_field):
                ncol=3,
                fontsize=8)
     plt.title(str(y_field) + " vs. " + str(x_field))
-    plt.xlabel("log " + str(x_field))
-    plt.ylabel("log " + str(y_field))
+    plt.xlabel(str(x_field))
+    plt.ylabel(str(y_field))
 
 
 def plot_histograms_by_config(results):
@@ -102,7 +114,7 @@ def plot_histograms_by_config(results):
         x = results.loc["error", :, config].values
         plt.hist(x, bins = 10, log = True)
         plt.title("Errors for " + config)
-        plt.xlabel(r'$\log{\frac{|p - p_mosek|}{t_{abs} + |p_mosek|}}$')
+        plt.xlabel(r'$\log{\frac{|p - p_{mosek}|}{t_{abs} + |p_{mosek}|}}$')
         plt.draw()
 
 

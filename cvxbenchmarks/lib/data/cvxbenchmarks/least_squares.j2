@@ -1,0 +1,17 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+n = {{ n }}
+m = {{ m }}
+np.random.seed({{ seed }})
+
+x = cp.Variable(n)
+A = np.random.rand(m, n)
+b = np.random.rand(m)
+{% endblock %}
+
+{% block problem %}
+objective = cp.Minimize(cp.sum_squares(A*x - b))
+prob = cp.Problem(objective)
+{% endblock %}
+

@@ -1,0 +1,21 @@
+# This is automatically-generated code.
+
+# Uses the jinja2 library for templating.
+
+problemID = "{{ problemID }}"
+
+import cvxpy as cp
+import numpy as np
+import scipy as sp
+
+# Variable declarations
+{% block vars%} {% endblock %}
+
+# Problem construction
+{% block problem %} {% endblock %}
+
+# For debugging individual problems:
+if __name__ == "__main__":
+	prob.solve()
+	print "status:", prob.status
+	print "optimal value", prob.value

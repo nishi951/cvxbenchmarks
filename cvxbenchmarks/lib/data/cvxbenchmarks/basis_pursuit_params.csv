@@ -1,0 +1,4 @@
+problemID, m, n, seed
+basis_pursuit_0, 100, 300, 0
+basis_pursuit_1, 200, 400, 0
+basis_pursuit_3, 1000, 3000, 0

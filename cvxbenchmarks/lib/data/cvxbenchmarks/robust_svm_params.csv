@@ -1,0 +1,2 @@
+problemID, m, n, mu, rho, sigma, seed
+robust_svm_0, 2000, 600, 1, 1, 0.1, 0

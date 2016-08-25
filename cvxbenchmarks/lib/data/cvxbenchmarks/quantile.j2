@@ -1,0 +1,40 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+# Generate data
+np.random.seed({{ seed }})
+m = {{ m }}
+n = {{ n }}
+k = {{ k }}
+p = {{ p }}
+sigma = {{ sigma }}
+
+x = np.random.rand(m)*2*np.pi*p
+y = np.sin(x) + sigma*np.sin(x)*np.random.randn(m)
+alphas = np.linspace(1./(k+1), 1-1./(k+1), k)
+
+# RBF features
+mu_rbf = np.array([np.linspace(-1, 2*np.pi*p+1, n)])
+mu_sig = (2*np.pi*p+2)/n
+X = np.exp(-(mu_rbf.T - x).T**2/(2*mu_sig**2))
+
+Theta = cp.Variable(n,k)
+{% endblock %}
+
+{% block problem %}
+# Other probabilistic models
+def quantile_loss(alphas, Theta, X, y):
+    m, n = X.shape
+    k = len(alphas)
+    Y = np.tile(y.flatten(), (k, 1)).T
+    A = np.tile(alphas, (m, 1))
+    Z = X*Theta - Y
+    return cp.sum_entries(
+        cp.max_elemwise(
+            cp.mul_elemwise( -A, Z),
+            cp.mul_elemwise(1-A, Z)))
+
+f = quantile_loss(alphas, Theta, X, y)
+C = [X*(Theta[:,:-1] - Theta[:,1:]) >= 0]
+prob = cp.Problem(cp.Minimize(f), C)
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+m = {{ m }}
+ni = {{ ni }}
+k = {{ k }}
+rho=0.05
+sigma=0.05
+np.random.seed({{ seed }})
+
+A = np.random.randn(m, ni*k)
+A /= np.sqrt(np.sum(A**2, 0))
+
+x0 = np.zeros(ni*k)
+for i in range(k):
+    if np.random.rand() < rho:
+        x0[i*ni:(i+1)*ni] = np.random.rand()
+b = A.dot(x0) + sigma*np.random.randn(m)
+
+lam = 0.1*sigma*np.sqrt(m*np.log(ni*k))
+x = cp.Variable(A.shape[1])
+f = cp.sum_squares(A*x - b) + lam*cp.norm1(x) + lam*cp.tv(x)
+{% endblock %}
+
+{% block problem %}
+prob = cp.Problem(cp.Minimize(f))
+{% endblock %}

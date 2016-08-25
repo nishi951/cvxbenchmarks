@@ -1,0 +1,25 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+np.random.seed({{ seed }})
+n = {{ n }}
+
+P = np.random.rand(n,n);
+P = P.T.dot(P) + np.eye(n)
+q = np.random.randn(n);
+r = np.random.randn();
+
+l = np.random.randn(n);
+u = np.random.randn(n);
+lb = np.minimum(l,u);
+ub = np.maximum(l,u);
+
+x = cp.Variable(n)
+{% endblock %}
+
+{% block problem %}
+f = 0.5*cp.quad_form(x, P) + q.T*x + r
+C = [x >= lb,
+     x <= ub]
+prob = cp.Problem(cp.Minimize(f), C)
+{% endblock %}

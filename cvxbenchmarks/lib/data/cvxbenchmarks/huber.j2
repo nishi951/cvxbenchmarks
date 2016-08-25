@@ -1,0 +1,21 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+import scipy.sparse as sps
+np.random.seed({{ seed }})
+m = {{ m }}
+n = {{ n }}
+
+x0 = np.random.randn(n)
+A = np.random.randn(m,n)
+A = A*sps.diags([1 / np.sqrt(np.sum(A**2, 0))], [0])
+b = A.dot(x0) + np.sqrt(0.01)*np.random.randn(m)
+b = b + 10*np.asarray(sps.rand(m, 1, 0.05).todense()).ravel()
+
+x = cp.Variable(n)
+
+{% endblock %}
+
+{% block problem %}
+prob = cp.Problem(cp.Minimize(cp.sum_entries(cp.huber(A*x - b))))
+{% endblock %}

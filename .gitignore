@@ -9,6 +9,9 @@
 
 cvxbenchmarks/old
 
+# gurobi
+gurobi.log
+
 # Packages
 *.egg
 *.egg-info
@@ -23,3 +26,6 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+
+# Keep lib folder
+!cvxbenchmarks/lib

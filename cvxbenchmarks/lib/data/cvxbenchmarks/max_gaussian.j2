@@ -1,0 +1,22 @@
+{% extends "problem.j2" %}
+
+{% block vars %}
+np.random.seed({{ seed }})
+m = {{ m }}
+n = {{ n }}
+k = {{ k }}
+A = np.matrix(np.random.rand(m,n))
+A -= np.mean(A, axis=0)
+K = np.array([(A[i].T*A[i]).flatten() for i in xrange(m)])
+
+sigma = cp.Variable(n,n)
+t = cp.Variable(m)
+tdet = cp.Variable(1)
+{% endblock %}
+
+{% block problem %}
+f = cp.sum_largest(t+tdet, k)
+z = K*cp.reshape(sigma, n*n, 1)
+C = [-cp.log_det(sigma) <= tdet, t == z]
+prob = cp.Problem(cp.Minimize(f), C)
+{% endblock %}

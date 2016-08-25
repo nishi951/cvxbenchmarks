@@ -1,0 +1,5 @@
+problemID, m, n, k, seed
+chebyshev_0, 100, 200, 10, 0
+chebyshev_1, 200, 400, 10, 0
+chebyshev_2, 400, 800, 10, 0
+

@@ -1,0 +1,3 @@
+problemID, m, n, rho, mu, seed
+hinge_l2_0, 5000, 1500, 1, 1, 0
+hinge_l2_sparse, 1000, 1500, 1, 0.1, 0

@@ -1,0 +1,4 @@
+problemID, m, n, lam, seed
+covsel_0, 100, 200, 0.1, 0
+covsel_1, 400, 500, 0.1, 0
+covsel_2, 600, 800, 0.1, 0

@@ -6,6 +6,8 @@ import os, sys, inspect, glob
 import pandas as pd
 import math
 
+from warnings import warn
+
 STOP = "STOP" # Poison pill for parallel solve subroutine.
 
 # Use local repository:
@@ -102,16 +104,17 @@ class TestFramework(object):
         """
         return self._results
 
-    def load_problem(self, problemID):
+    def load_problem_file(self, fileID):
         """Loads a single problem and appends it to self.problems.
 
         Parameters
         ----------
-        problemID : string
-            A unique identifier for the problem to be loaded. File containing the problem
-            should be in the format <problemID>.py.
+        fileID : string
+            A unique identifier for the file to be loaded. File containing the problem
+            should be in the format <fileID>.py.
+            <fileID>.py can also contain a list of problems.
         """
-        self.problems.append(TestProblem.from_file(problemID, self.problemDir))
+        self.problems.append(TestProblem.from_file(fileID, self.problemDir))
 
     def preload_all_problems(self):
         """Loads all the problems in self.problemDir and adds them to self.test_problems.
@@ -119,8 +122,7 @@ class TestFramework(object):
         for dirname, dirnames, filenames in os.walk(self.problemDir):
             for filename in filenames:
                 if filename[-3:] == ".py" and filename != "__init__.py":
-                    problemID = filename[0:-3]
-                    self.load_problem(problemID)
+                    self.load_problem_file(filename[0:-3])
 
     def load_config(self, configID):
         """Loads a single solver configuration and appends it to self.configs
@@ -356,14 +358,13 @@ class TestProblem(object):
         self.problem = problem
 
     @classmethod
-    def from_file(self, problemID, problemDir):
-        """Alternative constructor for loading a problem from a directory containing a
-        <problemID>.py file defining a cvxpy.Problem instance named prob.
+    def from_file(self, fileID, problemDir):
+        """Loads a file with name <fileID>.py and returns a dictionary of
+        {<problemID> : problem} for each problem found in the file.
 
         Parameters
         ----------
-        problemID : string
-            A unique identifier for this problem. Problem file should be of the form <problemID>.py.
+        fileID : string
         problemDir : string
             The directory where the problem files are located.
 
@@ -371,9 +372,21 @@ class TestProblem(object):
         -------
         TestProblem - the newly created TestProblem object.
         """
+
+        # Load the module
         if problemDir not in sys.path:
             sys.path.insert(0, problemDir)
-        return TestProblem(problemID, __import__(problemID).prob)
+        problemModule = __import__(fileID)
+
+        # Look for single problems
+        # Use the fileID as the problemID, with a
+        PROBLEM_VAR_NAMES = ["prob", "problem"]
+        for problemVarName in PROBLEM_VAR_NAMES:
+            if problemVarName in [name.lower() for name in dir(problemModule)]:
+                return TestProblem(problemModule.problemID, problemModule.prob)
+
+
+
 
     def __eq__(self, other):
         return self.id == other.id and self.problem == other.problem
