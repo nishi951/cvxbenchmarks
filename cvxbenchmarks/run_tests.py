@@ -63,7 +63,23 @@ plt.draw()
 # Graph histogram of solve accuracies (relative to mosek)
 # dv.plot_histograms_by_config(results)
 
-plt.show()
+# Show figures
+# plt.show()
+
+# Save figures to a single file:
+# http://stackoverflow.com/questions/26368876/saving-all-open-matplotlib-figures-in-one-file-at-once
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.pyplot as plt
+
+def multipage(filename, figs=None, dpi=200):
+    pp = PdfPages(filename)
+    if figs is None:
+        figs = [plt.figure(n) for n in plt.get_fignums()]
+    for fig in figs:
+        fig.savefig(pp, format='pdf')
+    pp.close()
+
+multipage("figs.pdf")
 
 
 

@@ -44,6 +44,7 @@ def worker(problemDir, configDir, work_queue, done_queue):
         if problemID == STOP:
             # Poison pill
             print "Exiting worker process."
+            done_queue.put(STOP)
             break
         testproblem = TestProblem.from_file(problemID, problemDir)
         config = SolverConfiguration.from_file(configID, configDir)
@@ -189,17 +190,20 @@ class TestFramework(object):
             processes.append(p)
             work_queue.put((STOP,STOP))
 
-        # wait until all processes finished
-        for p in processes:
-            p.join()
-
-        done_queue.put(STOP)
-
-        # beautify results and return them
-        for result in iter(done_queue.get, STOP):
-            if result is not None:
-                self._results.append(result)
-
+        # Poll done_queue and empty it right away.
+        # keep track of the number of poison pills we get-
+        # once its equal to the number of workers, stop.
+        processes_left = workers
+        while processes_left:
+            if not done_queue.empty():
+                result = done_queue.get()
+                if result == STOP:
+                    processes_left -= 1
+                    print "Processes left: ",str(processes_left)
+                else:
+                    self._results.append(result)
+                print "received!"
+            time.sleep(0.5) # Wait for processes to run.
 
         for p in processes:
             print "process",p,"exited with code",p.exitcode
@@ -501,9 +505,14 @@ class TestInstance(object):
                 results.num_iters = problem.solver_stats.num_iters
             results.status = problem.status
             results.opt_val = problem.value
-        except:
+        except Exception as e:
+            print e
             # Configuration could not solve the given problem
-            print "failure in solving."
+            results = TestResults(self.testproblem, self.config)
+            results.size_metrics = problem.size_metrics
+            print "failure solving",self.testproblem.id,"with config",self.config.id
+            return results
+
         # Record residual gross stats:
         results.avg_abs_resid, results.max_resid = TestInstance.compute_residual_stats(problem)
         print "computed stats for", self.testproblem.id, "with config", self.config.id
