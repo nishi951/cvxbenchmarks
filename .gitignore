@@ -29,3 +29,6 @@ lib64
 
 # Keep lib folder
 !cvxbenchmarks/lib
+
+# auto-generated files
+cvxbenchmarks/index.txt

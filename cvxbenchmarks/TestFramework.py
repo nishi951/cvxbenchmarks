@@ -202,7 +202,7 @@ class TestFramework(object):
                     print "Processes left: ",str(processes_left)
                 else:
                     self._results.append(result)
-                print "received!"
+                # print "received!"
             time.sleep(0.5) # Wait for processes to run.
 
         for p in processes:
