@@ -31,4 +31,4 @@ lib64
 !cvxbenchmarks/lib
 
 # auto-generated files
-cvxbenchmarks/index.txt
+*index.txt
