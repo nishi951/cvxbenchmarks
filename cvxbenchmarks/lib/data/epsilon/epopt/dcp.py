@@ -8,6 +8,7 @@ help of cvxpy.utilities.
 import cvxpy.utilities
 
 from epopt.proto.epsilon import expression_pb2
+from functools import reduce
 
 class DCPProperties(object):
     def __init__(self, dcp_attr):

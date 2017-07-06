@@ -40,7 +40,7 @@ def eval_prox_impl(prob, v_map, lam=1, prox_function_type=None, epigraph=False):
 
     v_bytes_map = {cvxpy_expr.variable_id(var):
                    numpy.array(val, dtype=numpy.float64).tobytes(order="F")
-                   for var, val in v_map.iteritems()}
+                   for var, val in v_map.items()}
 
     values = _solve.eval_prox(
         f_expr.SerializeToString(),

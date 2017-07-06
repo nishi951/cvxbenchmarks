@@ -2,7 +2,7 @@
 
 import io
 import os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import cvxpy as cp
 import numpy as np
@@ -19,7 +19,7 @@ DATA_SMALL = "file://localhost" + DATA_SMALL_FILE  # 2K examples
 DATA_FULL = "http://mnist.mat"                     # 60K examples
 
 def load_data(data_url):
-    d = scipy.io.loadmat(io.BytesIO(urllib.urlopen(data_url).read()))
+    d = scipy.io.loadmat(io.BytesIO(urllib.request.urlopen(data_url).read()))
     return d['X'], d['y'].ravel()
 
 def median_dist(X):
@@ -27,7 +27,7 @@ def median_dist(X):
     k = int(m**1.5)
     I = np.random.randint(0, m, k)
     J = np.random.randint(0, m, k)
-    dists = sorted(map(lambda i : LA.norm(X[I[i],:] - X[J[i],:]), xrange(k)))
+    dists = sorted([LA.norm(X[I[i],:] - X[J[i],:]) for i in range(k)])
     return dists[k / 2]
 
 def pca(X):

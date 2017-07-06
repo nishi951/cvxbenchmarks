@@ -161,6 +161,6 @@ def upper_tri(n):
     data = {}
     m = n*(n-1)/2
     rows = np.arange(m)
-    cols = np.array([j*n + i for i in xrange(n) for j in xrange(i+1,n)])
+    cols = np.array([j*n + i for i in range(n) for j in range(i+1,n)])
     A = sp.coo_matrix((np.ones(m), (rows, cols)), shape=(m, n*n))
     return sparse_matrix(constant.store(A, data), data)

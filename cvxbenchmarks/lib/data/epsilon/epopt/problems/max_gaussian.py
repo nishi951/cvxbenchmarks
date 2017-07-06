@@ -10,7 +10,7 @@ def create(**kwargs):
     k = kwargs["k"]
     A = np.matrix(np.random.rand(m,n))
     A -= np.mean(A, axis=0)
-    K = np.array([(A[i].T*A[i]).flatten() for i in xrange(m)])
+    K = np.array([(A[i].T*A[i]).flatten() for i in range(m)])
 
     sigma = cp.Variable(n,n)
     t = cp.Variable(m)

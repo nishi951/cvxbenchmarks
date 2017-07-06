@@ -1,5 +1,16 @@
+# ECOS Multiprocessing Minimal Test case
+# import TestFramework as tf
+# import DataVisualization as dv
+# import matplotlib.pyplot as plt
+# import time
+# import pandas as pd
 
+import cvxpy as cp
 import numpy as np
+import scipy as sp
+import scipy.sparse as sps
+
+
 import multiprocessing
 import time
 import os, sys, inspect, glob
@@ -10,16 +21,8 @@ from warnings import warn
 
 STOP = "STOP" # Poison pill for parallel solve subroutine.
 
-# Use local repository:
 
-# cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
-# if cvxfolder not in sys.path:
-    # sys.path.insert(0, cvxfolder) 
-# sys.path.insert(0, "/Users/mark/Documents/Stanford/reu2016/cvxpy")
-import cvxpy as cvx
-print(cvx)
-
-
+# Run problem using a worker function
 def worker(problemDir, configDir, work_queue, done_queue): 
     """Worker function for multithreading the solving of test instances.
     Parameters
@@ -39,6 +42,8 @@ def worker(problemDir, configDir, work_queue, done_queue):
     read the problem directly into its own memory space. Because TestResult objects are inherently 
     size-constrained, it's feasible to pass them back as objects directly (also note that they are serializable).
     """
+
+
     while True:
         problemID, configID = work_queue.get()
         if problemID == STOP:
@@ -351,7 +356,6 @@ class TestFramework(object):
 
         results["performance"] = performance
 
-
 class TestProblem(object):
     """Expands the Problem class to contain extra details relevant to the testing architecture.
 
@@ -398,6 +402,8 @@ class TestProblem(object):
         return self.id == other.id and self.problem == other.problem
 
 
+
+
 class SolverConfiguration(object):
     """An object for managing the configuration of the cvxpy solver.
 
@@ -439,7 +445,7 @@ class SolverConfiguration(object):
         if configDir not in sys.path:
             sys.path.insert(0, configDir)
         configObj = __import__(configID)
-        if configObj.solver in cvx.installed_solvers():
+        if configObj.solver in cp.installed_solvers():
             return SolverConfiguration(configID, configObj.solver, configObj.verbose, configObj.kwargs)
         else:
             return None
@@ -449,7 +455,6 @@ class SolverConfiguration(object):
                (self.solver == other.solver) and \
                (self.verbose == other.verbose) and \
                (self.kwargs == other.kwargs)
-
 
 class TestInstance(object):
     """An object for managing the data collection for a particular problem instance and
@@ -551,9 +556,9 @@ class TestInstance(object):
         n_residuals = 0
 
         for constraint in problem.constraints:
-            # print(constraint.residual.is_constant())
+            print(constraint.residual.is_constant())
             res = constraint.residual.value
-            # print("1")
+            print("1")
             thismax = 0
 
             # Compute average absolute residual:
@@ -576,7 +581,6 @@ class TestInstance(object):
         if n_residuals == 0:
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
-
 
 class TestResults(object):
     """Holds the results of running a test instance.
@@ -623,4 +627,9 @@ class TestResults(object):
 
 
 
-
+# For debugging individual problems:
+if __name__ == "__main__":
+    framework = TestFramework("problems", "lib/configs")
+    framework.preload_all_problems()
+    framework.load_config("ecos_config")
+    framework.solve_all_parallel()

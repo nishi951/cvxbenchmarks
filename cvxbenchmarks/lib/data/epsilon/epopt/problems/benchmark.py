@@ -125,7 +125,7 @@ PROBLEM_SCALE_ICML += [ProblemInstance(
 
 def print_constraints(cvxpy_prob):
     for c in cvxpy_prob.constraints:
-        print '[CONSTR]', c.__repr__(), c.value, np.linalg.norm(c.violation)
+        print('[CONSTR]', c.__repr__(), c.value, np.linalg.norm(c.violation))
 
 def benchmark_epsilon(cvxpy_prob, **kwargs):
     if args.iterations:
@@ -205,7 +205,7 @@ def run_benchmarks(benchmarks, problems):
 
             if f_eval:
                 if args.debug:
-                    print "Use corrected objective"
+                    print("Use corrected objective")
                 value = f_eval()
 
             logging.debug("done %f seconds", t1-t0)
@@ -234,12 +234,12 @@ if __name__ == "__main__":
 
     if args.list_problems:
         for problem in problems:
-            print problem.name
+            print(problem.name)
         sys.exit(0)
 
     if args.list_benchmarks:
         for benchmark in BENCHMARKS:
-            print benchmark
+            print(benchmark)
         sys.exit(0)
 
     if args.debug:
@@ -252,7 +252,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     for result in run_benchmarks([args.benchmark], problems):
-        print "\t".join(str(x) for x in result)
+        print("\t".join(str(x) for x in result))
 
 else:
     args = argparse.Namespace()

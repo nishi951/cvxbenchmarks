@@ -23,7 +23,7 @@ if __name__ == "__main__":
         label, n, t = line.split()
         data[label].append((n, t))
 
-    for label, n_t in data.iteritems():
+    for label, n_t in data.items():
         plt.loglog([n for n, t in n_t],
                    [t for n, t in n_t],
                    label=LABELS[label], linewidth=2)

@@ -1,4 +1,5 @@
 *.pyc
+*.bak
 
 *~
 .DS_Store
@@ -8,6 +9,9 @@
 *randomConeProb.py
 
 cvxbenchmarks/old
+
+# Large problem databases
+cvxbenchmarks/lib/data/qpoases/*
 
 # gurobi
 gurobi.log

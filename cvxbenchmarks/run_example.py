@@ -4,14 +4,15 @@ import time
 import pandas as pd
 
 framework = tf.TestFramework(problemDir = "problems", configDir = "lib/configs")
-print "Loading problems..."
+print("Loading problems...")
 framework.preload_all_problems()
-print "\tDone."
+print("\tDone.")
 
-print "Loading configs..."
+print("Loading configs...")
 framework.load_config("ecos_config")
 framework.load_config("scs_config")
-print "\tDone."
+framework.load_config("superscs_config")
+print("\tDone.")
 
 start = time.time()
 # print "Solving all problem instances..."
@@ -19,17 +20,17 @@ start = time.time()
 # print "\tDone."
 
 
-print "Solving all problem instances in parallel..."
+print("Solving all problem instances in parallel...")
 framework.solve_all_parallel()
-print "\tDone."
-print "\tTime:",str(time.time()-start)
+print("\tDone.")
+print("\tTime:",str(time.time()-start))
 
-print "number of results:", str(len(framework.results))
+print("number of results:", str(len(framework.results)))
 
 # Export results to a pandas panel
-print "exporting results."
+print("exporting results.")
 results = framework.export_results_as_panel()
-print results.to_frame(filter_observations = False)
+print(results.to_frame(filter_observations = False))
 
 # Data Visualization
 import matplotlib.pyplot as plt

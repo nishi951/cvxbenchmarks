@@ -581,7 +581,7 @@ def neg_log_det_epigraph(expr):
     if len(expr.arg[0].arg) != 2:
         return MatchResult(False)
 
-    for i in xrange(2):
+    for i in range(2):
         if expr.arg[0].arg[i].expression_type == Expression.LOG_DET:
             exprs = [expr.arg[0].arg[i],
                         expr.arg[0].arg[1-i]]

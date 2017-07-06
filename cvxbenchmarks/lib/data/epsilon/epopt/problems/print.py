@@ -29,12 +29,12 @@ if __name__ == "__main__":
     cvxpy_prob = locals()[args.problem].create(**json.loads(args.kwargs))
     problem = cvxpy_expr.convert_problem(cvxpy_prob)
 
-    print "original:"
-    print formatter(problem)
+    print("original:")
+    print(formatter(problem))
 
     for transform in compiler.TRANSFORMS:
         problem = transform(problem)
 
-        print
-        print ".".join((transform.__module__, transform.__name__)) + ":"
-        print formatter(problem)
+        print()
+        print(".".join((transform.__module__, transform.__name__)) + ":")
+        print(formatter(problem))

@@ -60,7 +60,7 @@ def write_problem(cvxpy_prob, location, name):
     with open(os.path.join(location, name), "w") as f:
         f.write(prob_proto.SerializeToString())
 
-    for name, value in constant.global_data_map.items():
+    for name, value in list(constant.global_data_map.items()):
         assert name[:len(mem_prefix)] == mem_prefix
         filename = os.path.join(location, name[len(mem_prefix):])
         makedirs_existok(os.path.dirname(filename))

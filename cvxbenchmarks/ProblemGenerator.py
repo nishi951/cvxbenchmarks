@@ -9,7 +9,7 @@ import pandas as pd
     # sys.path.insert(0, cvxfolder) 
 sys.path.insert(0, "/Users/mark/Documents/Stanford/reu2016/cvxpy")
 import cvxpy as cvx
-print cvx
+print(cvx)
 
 # Format of the Parameter file:
 # Csv file readable by pandas
@@ -66,8 +66,8 @@ class ProblemTemplate(object):
             temp = env.get_template(self.templateFile)
             return temp
         except Exception as e:
-            print "Problem locating template",self.templateFile,"in",self.templateDir+". Check template file path."
-            print e
+            print("Problem locating template",self.templateFile,"in",self.templateDir+". Check template file path.")
+            print(e)
             return temp
 
     def read_params(self):
@@ -77,8 +77,8 @@ class ProblemTemplate(object):
         try:
             self.params = pd.read_csv(self.paramFile, skipinitialspace=True)
         except Exception as e:
-            print "Problem loading parameters in",self.paramFile,". Check parameter file path."
-            print e
+            print("Problem loading parameters in",self.paramFile,". Check parameter file path.")
+            print(e)
         return self.params
 
     def read(self):
@@ -94,10 +94,10 @@ class ProblemTemplate(object):
         outputdir : string
             The directory where the template instances should be written.
         """
-        print self.params
+        print(self.params)
         for idx, row in self.params.iterrows():
             instanceID = row["problemID"]
-            with open(os.path.join(outputdir, instanceID + ".py"), "wb") as f:
+            with open(os.path.join(outputdir, instanceID + ".py"), "w") as f:
                 f.write(self.template.render(row.to_dict()))
 
 
@@ -146,7 +146,7 @@ class Index(object):
                 # print filename
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     problemID = filename[0:-3]
-                    print problemID
+                    print(problemID)
                     problem = (__import__(problemID).prob)
                     next = pd.Series(problem.size_metrics.__dict__, name = problemID)
                     problem_list.append(next)

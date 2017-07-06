@@ -59,7 +59,7 @@ def convert_parameter(expr):
 
 def convert_constant(expr):
     m, n = expr.size
-    if isinstance(expr.value, (int, long, float)):
+    if isinstance(expr.value, (int, float)):
         return expression.constant(m, n, scalar=expr.value)
     else:
         data = {}

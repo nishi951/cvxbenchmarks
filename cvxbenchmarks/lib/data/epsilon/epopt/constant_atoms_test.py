@@ -263,10 +263,10 @@ def check_solver(prob, solver_name):
 # Tests numeric version of atoms.
 def run_atom(atom, problem, obj_val, solver):
     assert problem.is_dcp()
-    print(problem.objective)
-    print(problem.constraints)
+    print((problem.objective))
+    print((problem.constraints))
     if check_solver(problem, solver):
-        print("solver", solver)
+        print(("solver", solver))
         tolerance = SOLVER_TO_TOL[solver]
         if solver == EPSILON:
             status, result = cvxpy_solver.solve(

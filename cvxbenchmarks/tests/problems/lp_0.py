@@ -36,5 +36,5 @@ prob = Problem(objective, constraints)
 # For debugging individual problems:
 if __name__ == "__main__":
 	prob.solve()
-	print "status:", prob.status
-	print "optimal value", prob.value
+	print("status:", prob.status)
+	print("optimal value", prob.value)

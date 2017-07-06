@@ -17,15 +17,15 @@ def create(m, ni, K):
     pa = np.hstack((0, pb[:-1]))
 
     x0 = np.zeros(n)
-    for i in xrange(K):
+    for i in range(K):
         if np.random.rand() < p:
             x0[pa[i]:pb[i]] = np.random.randn(part[i])
 
     A = problem_util.normalized_data_matrix(m, n, 1)
     b = A.dot(x0) + np.sqrt(0.001)*np.random.randn(m)
-    lam = 0.1*max(LA.norm(A[:,pa[i]:pb[i]].T.dot(b)) for i in xrange(K))
+    lam = 0.1*max(LA.norm(A[:,pa[i]:pb[i]].T.dot(b)) for i in range(K))
 
     x = cp.Variable(n)
     f = (0.5*cp.sum_squares(A*x - b) +
-         lam*sum(cp.norm2(x[pa[i]:pb[i]]) for i in xrange(K)))
+         lam*sum(cp.norm2(x[pa[i]:pb[i]]) for i in range(K)))
     return cp.Problem(cp.Minimize(f))

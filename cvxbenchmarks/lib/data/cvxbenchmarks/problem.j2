@@ -12,10 +12,13 @@ import scipy as sp
 {% block vars%} {% endblock %}
 
 # Problem construction
+prob = None
+opt_val = None
 {% block problem %} {% endblock %}
 
 # For debugging individual problems:
 if __name__ == "__main__":
 	prob.solve()
-	print "status:", prob.status
-	print "optimal value", prob.value
+	print("status:", prob.status)
+	print("optimal value:", prob.value)
+    print("true optimal value:", opt_val)

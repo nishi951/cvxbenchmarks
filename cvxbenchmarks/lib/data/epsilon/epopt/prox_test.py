@@ -254,7 +254,7 @@ def run_prox(prox_function_type, prob, v_map, lam=1, epigraph=False):
     # Compare to solution with cvxpy
     prob.objective.args[0] *= lam
     prob.objective.args[0] += sum(
-        0.5*cp.sum_squares(x - v_map[x]) for x, v in v_map.iteritems())
+        0.5*cp.sum_squares(x - v_map[x]) for x, v in v_map.items())
     try:
         prob.solve()
     except cp.SolverError as e:
@@ -266,23 +266,23 @@ def run_prox(prox_function_type, prob, v_map, lam=1, epigraph=False):
             np.testing.assert_allclose(x.value, actual[x], rtol=1e-2, atol=1e-2)
     except AssertionError as e:
         # print objective value and constraints
-        print
-        print 'cvx:'
-        print map(lambda x: x.value, prob.variables())
-        print 'actual:'
-        print actual.values()
-        print 'vmap:'
-        print v_map.values()
-        print 'cvx obj:', prob.objective.value
+        print()
+        print('cvx:')
+        print([x.value for x in prob.variables()])
+        print('actual:')
+        print(list(actual.values()))
+        print('vmap:')
+        print(list(v_map.values()))
+        print('cvx obj:', prob.objective.value)
         for c in prob.constraints:
-            print c, c.value, map(lambda x: x.value, c.args)
+            print(c, c.value, [x.value for x in c.args])
 
-        for x,v in actual.items():
+        for x,v in list(actual.items()):
             x.value = v
-            print 'our obj:', prob.objective.value
+            print('our obj:', prob.objective.value)
         for c in prob.constraints:
-            print c, c.value, map(lambda x: x.value, c.args)
-        print
+            print(c, c.value, [x.value for x in c.args])
+        print()
 
         raise e
 
@@ -303,7 +303,7 @@ def run_random_prox(prox_test, trial):
 
 def test_random_prox():
     for prox in PROX_TESTS:
-        for trial in xrange(RANDOM_PROX_TRIALS):
+        for trial in range(RANDOM_PROX_TRIALS):
             yield run_random_prox, prox, trial
 
 def test_second_order_cone():

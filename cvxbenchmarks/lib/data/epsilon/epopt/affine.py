@@ -7,6 +7,7 @@ from epopt import linear_map
 from epopt.error import LinearMapError
 from epopt.expression_util import *
 from epopt.proto.epsilon.expression_pb2 import Expression, LinearMap
+from functools import reduce
 
 def dense_type():
     return LinearMapType(LinearMap(linear_map_type=LinearMap.DENSE_MATRIX))
@@ -101,24 +102,24 @@ class AffineProperties(object):
     @property
     def diagonal(self):
         return (len(self.linear_maps) == 1 and
-                self.linear_maps.values()[0].diagonal)
+                list(self.linear_maps.values())[0].diagonal)
 
     @property
     def scalar(self):
         return (len(self.linear_maps) == 1 and
-                self.linear_maps.values()[0].scalar)
+                list(self.linear_maps.values())[0].scalar)
 
     def __rmul__(self, A):
         assert isinstance(A, LinearMapType)
         C = AffineProperties(self.linear_maps.copy())
-        for var_id, Bi in self.linear_maps.items():
+        for var_id, Bi in list(self.linear_maps.items()):
             C.linear_maps[var_id] = A*Bi
         return C
 
     def __add__(self, B):
         assert isinstance(B, AffineProperties)
         C = AffineProperties(self.linear_maps.copy())
-        for var_id, Bi in B.linear_maps.items():
+        for var_id, Bi in list(B.linear_maps.items()):
             if var_id not in self.linear_maps:
                 C.linear_maps[var_id] = Bi
             else:

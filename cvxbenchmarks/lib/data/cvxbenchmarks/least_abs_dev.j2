@@ -11,7 +11,7 @@ A = np.random.randn(m,n);
 A = A*sps.diags([1 / np.sqrt(np.sum(A**2, 0))], [0])
 b = A.dot(10*np.random.randn(n))
 
-k = max(m/50, 1)
+k = max(m//50, 1)
 idx = np.random.randint(0, m, k)
 b[idx] += 100*np.random.randn(k)
 

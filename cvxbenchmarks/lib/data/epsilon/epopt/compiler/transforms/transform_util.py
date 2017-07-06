@@ -76,7 +76,7 @@ def gm_constrs(t_expr, x_exprs, p):
             d[tuple(tmp)] = v
 
     constraints = []
-    for elem, children in tree.items():
+    for elem, children in list(tree.items()):
         if 1 not in elem:
             constraints += [gm(d[elem], d[children[0]], d[children[1]])]
 
@@ -91,7 +91,7 @@ def get_epigraph(expr):
         return None, None
 
     exprs = expr.arg[0].arg
-    for i in xrange(2):
+    for i in range(2):
         if exprs[i].dcp_props.affine:
             t_expr = exprs[i]
             f_expr = expression.negate(exprs[i-1])

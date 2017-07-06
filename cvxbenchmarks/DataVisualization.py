@@ -38,7 +38,7 @@ def plot_performance_profile(results, rel_max = 10e10):
 
         # Step plot stuff:
         # http://joelotz.github.io/step-functions-in-matplotlib.html
-        plt.step(x, y, label = config, drawstyle = "steps-post")
+        plt.step(x, y, label = config, linestyle = 'steps-post')
 
     plt.legend(loc = 'lower right')
     plt.xlim(1, 100)

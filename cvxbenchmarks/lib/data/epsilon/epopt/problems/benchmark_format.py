@@ -40,24 +40,24 @@ class Formatter(object):
 
 class Text(Formatter):
     def print_header(self):
-        print "|".join(c.header for c in self.columns)
-        print "|".join(c.sub_header for c in self.columns)
+        print("|".join(c.header for c in self.columns))
+        print("|".join(c.sub_header for c in self.columns))
 
     def print_row(self, data):
-        print "|".join(c.fmt % data[i] for i, c in enumerate(self.columns))
+        print("|".join(c.fmt % data[i] for i, c in enumerate(self.columns)))
 
 class HTML(Formatter):
     def print_header(self):
-        print "<table>"
-        print "<tr>" + "".join('<th colspan="%d">%s</th>' % (c.colspan, c.header)
-                               for c in self.columns) + "</tr>"
+        print("<table>")
+        print("<tr>" + "".join('<th colspan="%d">%s</th>' % (c.colspan, c.header)
+                               for c in self.columns) + "</tr>")
 
     def print_row(self, data):
-        print "".join("<td>" + c.fmt % data[i] + "</td>"
-                      for i, c in enumerate(self.columns))
+        print("".join("<td>" + c.fmt % data[i] + "</td>"
+                      for i, c in enumerate(self.columns)))
 
     def print_footer(self):
-        print "</table>"
+        print("</table>")
 
 def format_sci_latex(s):
     if "e+" in s or "e-" in s:
@@ -72,22 +72,22 @@ def format_sci_latex(s):
 
 class Latex(Formatter):
     def print_header(self):
-        print r"\begin{tabular}"
-        print "&".join("\multicolumn{%d}{c}{%s}" % (c.colspan, c.header)
+        print(r"\begin{tabular}")
+        print("&".join("\multicolumn{%d}{c}{%s}" % (c.colspan, c.header)
                        if c.colspan != 1
                        else c.header
-                       for c in self.columns) + r" \\"
+                       for c in self.columns) + r" \\")
 
 
     def print_row(self, data):
-        print ("&".join(
+        print(("&".join(
             [r"\texttt{%s}" % data[0].replace("_", "\_")] +
             [format_sci_latex(c.fmt % data[i+1])
              for i, c in enumerate(self.columns[1:])])
-        + r" \\")
+        + r" \\"))
 
     def print_footer(self):
-        print r"\end{tabular}"
+        print(r"\end{tabular}")
 
 
 FORMATTERS = {

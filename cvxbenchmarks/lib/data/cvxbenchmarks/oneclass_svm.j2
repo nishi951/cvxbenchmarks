@@ -17,7 +17,7 @@ A *= (np.random.rand(m)**(1./n))[:,np.newaxis]
 x0 = np.zeros(n)
 A += x0
 
-k = max(m/50, 1)
+k = max(m//50, 1)
 idx = np.random.randint(0, m, k)
 A[idx, :] += np.random.randn(k, n)
 lam = 1

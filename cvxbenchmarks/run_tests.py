@@ -1,36 +1,43 @@
 import TestFramework as tf
-import DataVisualization as dv
 import time
 import pandas as pd
 
-framework = tf.TestFramework(problemDir = "problems", configDir = "lib/configs")
-print "Loading problems..."
-framework.preload_all_problems()
-print "\tDone."
+# NOTE: Do not import matplotlib.pyplot before running TestFramework's solve_all_parallel - 
+# Something about matplotlib.pyplot messes up the solve (at least in a virtualenv)
 
-print "Loading configs..."
-framework.preload_all_configs()
-print "\tDone."
+framework = tf.TestFramework(problemDir = "problems", configDir = "lib/configs")
+print("Loading problems...")
+framework.preload_all_problems()
+print("\tDone.")
+
+print("Loading configs...")
+# framework.preload_all_configs()
+# framework.load_config("ecos_config")
+framework.load_config("scs_config")
+framework.load_config("superscs_config")
+framework.load_config("mosek_config")
+print("\tDone.")
 
 start = time.time()
-# print "Solving all problem instances..."
-# framework.solve_all()
-# print "\tDone."
+print("Solving all problem instances...")
+framework.solve_all()
+print("\tDone.")
 
 
-print "Solving all problem instances in parallel..."
-framework.solve_all_parallel()
-print "\tDone."
-print "\tTime:",str(time.time()-start)
+# print("Solving all problem instances in parallel...")
+# framework.solve_all_parallel()
+# print("\tDone.")
+print("\tTime:",str(time.time()-start))
 
-print "number of results:", str(len(framework.results))
+print("number of results:", str(len(framework.results)))
 
 # Export results to a pandas panel
-print "exporting results."
+print("exporting results.")
 results = framework.export_results_as_panel()
-print results.to_frame(filter_observations = False)
+print(results.to_frame(filter_observations = False))
 
 # Data Visualization
+import DataVisualization as dv
 import matplotlib.pyplot as plt
 import math
 
