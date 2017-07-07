@@ -12,6 +12,9 @@ cvxbenchmarks/old
 
 # Large problem databases
 cvxbenchmarks/lib/data/qpoases/*
+!cvxbenchmarks/lib/data/qpoases/*.py
+
+
 
 # gurobi
 gurobi.log
