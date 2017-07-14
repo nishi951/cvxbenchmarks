@@ -236,7 +236,7 @@ class TestFramework(object):
 
         labels += size_metrics_labels
 
-        # Remove unused columns
+        # Remove unused (i.e. redundant) columns
         labels.remove("size_metrics")
         labels.remove("test_problem")
         labels.remove("config")
@@ -271,7 +271,7 @@ class TestFramework(object):
         return output
 
     @classmethod
-    def compute_mosek_error(self, results, opt_val, mosek_config):
+    def compute_mosek_error(self, results, opt_val, mosek_config, abstol = 10e-4):
         """Takes a panel of results including a field of optimal values and computes the relative error
 
             error - using MOSEK as a standard, the error in the optimal value
@@ -289,8 +289,9 @@ class TestFramework(object):
             The name of the index in results where the optimal value of the problem under a specific configuration is found.
         mosek_config : string
             The configID for the configuration that used mosek to solve the problems.
+        abstol : float
+            The absolute tolerance used for computing the error. Added to the denominator to avoid division by zero.
         """
-        abstol = 10e-4
         error = pd.DataFrame(index = results.axes[1], columns = results.axes[2])
         for configID in results.axes[2]:
             for problemID in results.axes[1]:

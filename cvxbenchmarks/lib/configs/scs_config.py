@@ -1,4 +1,4 @@
 # SCS
 solver = "SCS"
 verbose = False
-kwargs = {}
+kwargs = {"eps" : 1e-5}

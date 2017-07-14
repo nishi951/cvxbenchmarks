@@ -9,10 +9,19 @@
 *randomConeProb.py
 
 cvxbenchmarks/old
+cvxbenchmarks/figs.pdf
+cvxbenchmarks/results.dat
 
 # Large problem databases
+###########
+# qpoases #
+###########
 cvxbenchmarks/lib/data/qpoases/*
 !cvxbenchmarks/lib/data/qpoases/*.py
+!cvxbenchmarks/lib/data/qpoases/*.sh
+
+#
+# CUTest
 
 
 
