@@ -7,7 +7,7 @@ import pandas as pd
 # cvxfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"cvxpy")))
 # if cvxfolder not in sys.path:
     # sys.path.insert(0, cvxfolder) 
-sys.path.insert(0, "/Users/mark/Documents/Stanford/reu2016/cvxpy")
+# sys.path.insert(0, "/Users/mark/Documents/Stanford/reu2016/cvxpy")
 import cvxpy as cvx
 print(cvx)
 
@@ -15,9 +15,9 @@ print(cvx)
 # Csv file readable by pandas
 # ex.
 # problemID, m, n, seed
-# "ls_0", 20, 30, 1
-# "ls_1", 40, 60, 1
-# "ls_big" 500, 600, 1
+# ls_0, 20, 30, 1
+# ls_1, 40, 60, 1
+# ls_big 500, 600, 1
 
 
 class ProblemTemplate(object):
@@ -28,9 +28,8 @@ class ProblemTemplate(object):
     IO Stuff:
         templateFile : string
             The actual file of the template. e.g. "lib/cvxbenchmarks/least_squares.j2"
-        paramFile : string
-            The file path to the file containing the parameters for the instances of this template.
-            e.g. "lib/cvxbenchmarks/least_squares_params.txt"
+        params : list of dict
+            A list of dictionary objects, one for each instance of the template we want to render.
         templateDir : string
             The file containing the templateFile (necessary for jinja2 to find the template)
 
@@ -44,53 +43,69 @@ class ProblemTemplate(object):
             need to be filled in.
     """
 
-    def __init__(self, templateFile, paramFile, templateDir = os.path.join("lib", "cvxbenchmarks")):
-        self.templateFile = templateFile
-        self.paramFile = paramFile
-        self.templateDir = templateDir
-        self.template, self.params = self.read()
+    def __init__(self, template = None, params = []):
+        self.template = template
+        self.params = params
 
-    def read_template(self):
-        """Read in the template.
-        Ex. If the template is stored in the file "least_squares.j2" in the folder
-        "templates", then self.problemID should be "least_squares" and templateDir should be "templates".
+    @classmethod
+    def from_file(self, templateFile, paramFile = None):
+        """Alternative constructor for loading a ProblemTemplate directly from files."""
+        newTemplate = ProblemTemplate()
+        newTemplate.read(templateFile, paramFile)
+        return newTemplate
+
+    @classmethod
+    def read_template(self, templateFile):
+        """Read in a template. Uses os.path.dirname and os.path.basename
+        to retrieve the template name and the environment directory from the templateFile argument.
 
         Returns
         -------
-        temp : jinja2.Template
-            The template stored in the file.
+        template : jinja2.Template
+            The template stored in the file
         """
-        temp = None
+        template = None
+        templateDir = os.path.dirname(templateFile)
+        templateName = os.path.basename(templateFile)
         try:
-            env = Environment(loader = FileSystemLoader(self.templateDir))
-            temp = env.get_template(self.templateFile)
-            return temp
+            env = Environment(loader = FileSystemLoader(templateDir))
+            template = env.get_template(templateName)
+            return template
         except Exception as e:
-            print("Problem locating template",self.templateFile,"in",self.templateDir+". Check template file path.")
+            print("Problem locating template",templateName,"in",templateDir+". Check template file path.")
             print(e)
-            return temp
+            return template
 
-    def read_params(self):
-        """Read in the parameter file csv.
+    @classmethod
+    def read_param_csv(self, paramFile):
+        """Read in a parameter file csv and store each row as a dictionary.
 
         Returns
         -------
-        params : a pandas.DataFrame containing the relevant parameters.
+        params : a list of dictionaries containing the relevant parameters.
         """
-        params = None
+        params = []
         try:
-            params = pd.read_csv(self.paramFile, skipinitialspace=True)
+            paramsDf = pd.read_csv(paramFile, skipinitialspace=True)
+            for idx, row in paramsDf.iterrows():
+                params.append(row.to_dict())
         except Exception as e:
             print("Problem loading parameters in",self.paramFile,". Check parameter file path.")
             print(e)
         return params
 
-    def read(self):
+    def read(self, templateFile, paramFile, overwrite = False):
         """Read in the template and the parameters.
         """
-        return self.read_template(), self.read_params()
+        self.template = ProblemTemplate.read_template(templateFile)
+        if paramFile is not None:
+            if overwrite:
+                self.params = ProblemTemplate.read_param_csv(paramFile)
+            else:
+                self.params.extend(ProblemTemplate.read_param_csv(paramFile))
+        return
 
-    def write_to_dir(self, outputdir):
+    def write_all_dir(self, outputdir):
         """Write all the template instances to files.
 
         Parameters
@@ -99,14 +114,19 @@ class ProblemTemplate(object):
             The directory where the template instances should be written.
         """
         print(self.params)
-        for idx, row in self.params.iterrows():
-            instanceID = row["problemID"]
-            with open(os.path.join(outputdir, instanceID + ".py"), "w") as f:
-                f.write(self.template.render(row.to_dict()))
+        with open(os.path.join(outputdir, instanceID + ".py"), "w") as f:
+            if len(self.params) > 0:
+                for paramDict in self.params:
+                    instanceID = row["problemID"]
+                    f.write(self.template.render(paramDict))
+            else:
+                f.write(self.template.render())
+
 
     def __str__(self):
-        return self.template.render(self.params.loc[0].to_dict())
-
+        if len(self.params) > 0:
+            return self.template.render(self.params[0])
+        return self.template.render()
 
 class Index(object):
     """An index that catalogues the problems currently ready to be processed.
