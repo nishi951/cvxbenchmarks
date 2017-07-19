@@ -22,4 +22,5 @@ objective = cp.Minimize(c*x)
 constraints = [A*x == b, x >= 0]
 
 prob = cp.Problem(objective, constraints)
+opt_val = np.dot(c, x_hat)
 {% endblock %}

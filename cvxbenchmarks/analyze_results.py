@@ -8,7 +8,8 @@ import numpy as np
 print("Loading results...")
 results = pd.read_hdf("results.dat")
 print("Done.")
-#print(results.to_frame(filter_observations = False))
+with pd.option_context('display.max_rows', None):
+    print(results.to_frame(filter_observations = False))
 # items = statistics
 # major_axis = problemIDs
 # minor_axis = configIDs
@@ -21,6 +22,16 @@ for problem in results.major_axis:
         if results.loc["status", problem, config] is None:
             print(str((problem, config)) + " gives None.")
 
+# Solver statuses:
+status_counts = pd.DataFrame(0, index = results.minor_axis, columns = ["optimal", "optimal_inaccurate", "infeasible", "None"])
+for config in results.minor_axis:
+    for problem in results.major_axis:
+        status_counts.loc[config, str(results.loc["status", problem, config])] += 1
+print("Solver status counts")
+print(status_counts)
+
+
+
 # Calculate aggregate statistics:
 # Average error:
 avg_errors = pd.Series(index = results.minor_axis)
@@ -28,7 +39,8 @@ for config in results.minor_axis:
     total_error = 0
     num_not_null = 0.0
     for problem in results.major_axis:
-        if pd.notnull(results.loc["error", problem, config]):
+        if pd.notnull(results.loc["error", problem, config]) and \
+          results.loc["status", problem, config] == "optimal":
             num_not_null += 1
             total_error += results.loc["error", problem, config]
     if num_not_null > 0:
@@ -62,6 +74,23 @@ for standard in rel_performance.index:
             rel_performance.loc[standard, compare] = None
 print("Relative performances")
 print(rel_performance)
+
+# Number of iterations
+avg_num_iters = pd.Series(index = results.minor_axis)
+for config in results.minor_axis:
+    total_num_iters = 0
+    num_not_null = 0.0
+    for problem in results.major_axis:
+        if pd.notnull(results.loc["num_iters", problem, config]) and \
+           results.loc["status", problem, config] == "optimal":
+            num_not_null += 1
+            total_num_iters += results.loc["num_iters", problem, config]
+    if num_not_null > 0:
+        avg_num_iters.loc[config] = total_num_iters / num_not_null
+    else:
+        avg_num_iters.loc[config] = None
+print("Average number of iterations")
+print(avg_num_iters)
 
 # Linear regression (scaling):
 # https://stackoverflow.com/questions/19991445/run-an-ols-regression-with-pandas-data-frame

@@ -40,4 +40,5 @@ for templateFile, paramFile in template_files:
 # Generate index file
 index = pg.Index("problems")
 index.write()
+index.write_latex()
 

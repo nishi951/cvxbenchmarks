@@ -2,23 +2,29 @@
 
 # Uses the jinja2 library for templating.
 
-problemID = "{{ problemID }}"
-
+{% block problemFile %}
 import cvxpy as cp
 import numpy as np
 import scipy as sp
 
+{% block problemID %}
+problemID = "{{ problemID }}"
+{% endblock %}
+
 # Variable declarations
-{% block vars%} {% endblock %}
+{% block vars %} {% endblock %}
 
 # Problem construction
-prob = None
+problems = {}
 opt_val = None
 {% block problem %} {% endblock %}
 
 # For debugging individual problems:
 if __name__ == "__main__":
-    prob.solve()
-    print("status:", prob.status)
-    print("optimal value:", prob.value)
-    print("true optimal value:", opt_val)
+    for problemID in problems:
+        print(problemID)
+        prob.solve()
+        print("\tstatus:", prob.status)
+        print("\toptimal value:", prob.value)
+        print("\ttrue optimal value:", opt_val)
+{% endblock %}

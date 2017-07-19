@@ -114,7 +114,7 @@ class TestFramework(object):
             should be in the format <fileID>.py.
             <fileID>.py can also contain a list of problems.
         """
-        self.problems.append(TestProblem.from_file(fileID, self.problemDir))
+        self.problems.extend(TestProblem.from_file(fileID, self.problemDir))
 
     def preload_all_problems(self):
         """Loads all the problems in self.problemDir and adds them to self.test_problems.
@@ -369,18 +369,22 @@ class TestProblem(object):
 
     @classmethod
     def from_file(self, fileID, problemDir):
-        """Loads a file with name <fileID>.py and returns a dictionary of
-        {<problemID> : problem} for each problem found in the file.
+        """Loads a file with name <fileID>.py and returns either a single 
+        TestProblem object or a list of testproblem objects, one for each problem found in the file.
 
         Parameters
         ----------
         fileID : string
         problemDir : string
             The directory where the problem files are located.
+            Each problem file should have a dicionary named "problems" that maps
+            the problem name to the corresponding cvxpy.Problem object.
 
         Returns
         -------
         TestProblem - the newly created TestProblem object.
+        or 
+        list of TestProblem
         """
 
         # Load the module
@@ -388,13 +392,23 @@ class TestProblem(object):
             sys.path.insert(0, problemDir)
         problemModule = __import__(fileID)
 
-        # Look for single problems
-        # Use the fileID as the problemID, with a
-        PROBLEM_VAR_NAMES = ["prob", "problem"]
-        for problemVarName in PROBLEM_VAR_NAMES:
-            if problemVarName in [name.lower() for name in dir(problemModule)]:
-                return TestProblem(problemModule.problemID, problemModule.prob)
+        foundProblems = [] # Holds the TestProblems we find in this file
 
+        # Look for a dictionary of problems TODO: Add these lists to the settings file.
+        PROBLEM_DICT = ["problems"]
+        for problemDict in PROBLEM_DICT:
+            if problemDict in [name for name in dir(problemModule)]:
+                problems = getattr(problemModule, problemDict):
+                for problemID in problems:
+                    foundProblems.append(TestProblem(problemID, problems[problemID]))
+
+        if len(foundProblems) == 1:
+            return foundProblems[0] # Don't return a list
+        else if len(foundProblems) == 0:
+            warn(fileID + " contains no problem objects.")
+        else:
+            return foundProblems
+        
     def __eq__(self, other):
         return self.id == other.id and self.problem == other.problem
 
@@ -504,6 +518,7 @@ class TestInstance(object):
             if problem.solver_stats.solve_time is not None:
                 results.solve_time = problem.solver_stats.solve_time
             else:
+                warn(self.config.id + " did not report a solve time for " + self.testproblem.id)
                 results.solve_time = time.time() - start
             if problem.solver_stats.setup_time is not None:
                 results.setup_time = problem.solver_stats.setup_time
