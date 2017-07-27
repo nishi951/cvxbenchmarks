@@ -31,16 +31,8 @@ texp = cp.Variable(m)
 {% endblock %}
 
 {% block problem %}
-# Multiclass classification
-def one_hot(y, k):
-    m = len(y)
-    return sps.coo_matrix((np.ones(m), (np.arange(m), y)), shape=(m, k)).todense()
-
-f = t+cp.sum_largest(texp, p) + cp.sum_squares(Theta)
-C = []
-C.append(cp.log_sum_exp(X*Theta, axis=1) <= texp)
-Yi = one_hot(Y, k)
-C.append(-cp.sum_entries(cp.mul_elemwise(X.T.dot(Yi), Theta)) == t)
-
-prob = cp.Problem(cp.Minimize(f), C)
+Theta = cp.Variable(n,k)
+beta = cp.Variable(1,k)
+obs = cp.vstack([-(X[i]*Theta + beta)[Y[i]] + cp.log_sum_exp(X[i]*Theta + beta) for i in range(m)])
+prob = cp.Problem(cp.Minimize(cp.sum_largest(obs, p) + cp.sum_squares(Theta)))
 {% endblock %}

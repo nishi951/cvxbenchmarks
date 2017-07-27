@@ -1,10 +1,19 @@
-
 import numpy as np
 import multiprocessing
 import time
 import os, sys, inspect, glob
 import pandas as pd
 import math
+
+import hashlib, shelve # Caching
+
+import cvxbenchmarks.settings as s
+
+# Constraint types
+from cvxpy.constraints.semidefinite import SDP
+from cvxpy.constraints.exponential import ExpCone
+from cvxpy.constraints.second_order import SOC
+from cvxpy.constraints.bool_constr import BoolConstr
 
 from warnings import warn
 
@@ -36,8 +45,9 @@ def worker(problemDir, configDir, work_queue, done_queue):
 
     A note on the design: because future problems might become quite large, it might become infeasible
     to pass them directly to the workers via queues. Instead we pass just the file paths and let the worker
-    read the problem directly into its own memory space. Because TestResult objects are inherently 
-    size-constrained, it's feasible to pass them back as objects directly (also note that they are serializable).
+    read the problem directly into its own memory space. 
+
+    To return the result, we need to 
     """
     while True:
         problemID, configID = work_queue.get()
@@ -61,7 +71,6 @@ class TestFramework(object):
     Attributes
     ----------
     problemDir : string
-
         Directory containing desired problem files.
     configDir : string
         Directory containing desired config files.
@@ -69,6 +78,18 @@ class TestFramework(object):
         list of problems to solve.
     configs : list of TestFramework.SolverConfiguration
         list of configurations under which to solve the problems.
+    cache : string
+        File containing a shelf object for storing TestInstance hashes mapped
+        to TestResults objects.
+
+        Options:
+        --------
+        parallel : boolean
+            Whether or not to run the TestInstances in parallel with each other.
+        tags : list 
+            List of tags specifying which problems types (e.g. SDP, SOCP)
+            we should solve.
+
     instances : list of TestFramework.TestInstance
         list of test instances to run.
     results : list of TestFramework.TestResults
@@ -84,11 +105,29 @@ class TestFramework(object):
 
     """
 
-    def __init__(self, problemDir, configDir, problems = [], configs = []):
+    def __init__(self, problemDir, configDir, problems=None, configs=None, cacheFile=".cache.dat", 
+                 parallel=False, tags=None):
         self.problemDir = problemDir
         self.configDir = configDir
-        self.problems = problems
-        self.configs = configs
+        if problems is None:
+            self.problems = []
+        else:
+            self.problems = problems
+        if configs is None:
+            self.configs = []
+        else:
+            self.configs = configs
+        self.cacheFile = cacheFile
+
+        # Runtime options
+        self.options = {}
+        self.options["parallel"] = parallel
+        if tags is None:
+            self.options["tags"] = []
+        else:
+            self.options["tags"] = tags
+
+        # Properties
         self._instances = []
         self._results = []
 
@@ -156,15 +195,53 @@ class TestFramework(object):
             for config in self.configs:
                 self._instances.append(TestInstance(problem, config))
 
-    def solve_all(self):
+    def clear_cache(self):
+        """Clear the cache used to store TestResults
+        """
+        import shelve
+        shelf = shelve.open(self.cacheFile, flag='n') # Creates a new, empty database
+        shelf.close()
+        return
+
+    def solve(self, use_cache=True):
+        """Solve all the TestInstances we have queued up.
+
+        Parameters
+        ----------
+        use_cache : boolean
+            Whether or not we should use the cache specified in self.cacheFile
+        """
+        if self.options["parallel"]:
+            self.solve_all_parallel(use_cache)
+        else:
+            self.solve_all(use_cache)
+
+    def solve_all(self, use_cache=True):
         """Solves all test instances and reports the results.
         """
         self.generate_test_instances()
         self._results = []
-        for instance in self._instances:
-            self._results.append(instance.run())
+        if not use_cache: # Don't use the cache.
+            for instance in self._instances:
+                self._results.append(instance.run())
+        else:
+            import hashlib, shelve
+            # Load the shelf:
+            with shelve.open(self.cache, "c") as cachedResults: # Maps hashes to TestResult objects
+                for instance in self._instances:
+                    instancehash = instance.hash()
+                    if instancehash in cachedResults:
+                        # Retrieve TestResult from the results dictionary:
+                        self._results.append(cachedResults[instancehash])
+                    else:
+                        # Add this result to the cache
+                        result = instance.run()
+                        self._results.append(result)
+                        cachedResults[instancehash] = result
+        return
 
-    def solve_all_parallel(self):
+
+    def solve_all_parallel(self, use_cache=True):
         """Solves all test instances in parallel and reports the results.
         DO NOT USE WHEN USING THE CVXOPT SOLVER!
         """
@@ -180,9 +257,20 @@ class TestFramework(object):
 
         # add filepaths to work queue
         # format is (problemID, configID)
-        for instance in self._instances:
-            print((instance.testproblem.id, instance.config.id))
-            work_queue.put((instance.testproblem.id, instance.config.id))
+        if not use_cache:
+            for instance in self._instances:
+                print((instance.testproblem.id, instance.config.id))
+                work_queue.put((instance.testproblem.id, instance.config.id))
+        else:
+            with shelve.open(self.cache, "c") as cachedResults: # Maps hashes to TestResult objects
+                for instance in self._instances:
+                    instancehash = instance.hash()
+                    if instancehash in cachedResults:
+                        # Retrieve TestResult from the results dictionary:
+                        self._results.append(cachedResults[instancehash])
+                    else:
+                        # Add this result to the cache
+                        work_queue.put((instance.testproblem.id, instance.config.id))
 
         # start processes
         for w in range(workers):
@@ -207,11 +295,15 @@ class TestFramework(object):
                     print("Processes left: ",str(processes_left))
                 else:
                     self._results.append(result)
+                    if use_cache: # Add this result to the cache.
+                        with shelve.open(self.cache, "c") as cachedResults:
+                            cachedResults[result.instancehash] = result
                 # print "received!"
             time.sleep(0.5) # Wait for processes to run.
 
         for p in processes:
             print("process",p,"exited with code",p.exitcode)
+        return
 
     def export_results_as_panel(self):
         """Convert results into a pandas panel object for easier data visualization
@@ -225,7 +317,7 @@ class TestFramework(object):
         configIDs = [config.id for config in self.configs]
 
         # Make a dummy TestResults instance to generate labels:
-        dummy = TestResults(TestProblem(None,None), SolverConfiguration(None, None, None, None))
+        dummy = TestResults(None)
         attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
         labels = [label[0] for label in attributes if not(label[0].startswith('__') and label[0].endswith('__'))]
         # Unpack size_metrics label with another dummy
@@ -241,7 +333,7 @@ class TestFramework(object):
         labels.remove("test_problem")
         labels.remove("config")
 
-        output = pd.Panel(items = labels, major_axis = problemIDs, minor_axis = configIDs)
+        output = pd.Panel(items=labels, major_axis=problemIDs, minor_axis=configIDs)
         for result in self._results:
             result_dict = result.__dict__
 
@@ -271,7 +363,7 @@ class TestFramework(object):
         return output
 
     @classmethod
-    def compute_mosek_error(self, results, opt_val, mosek_config, abstol = 10e-4):
+    def compute_mosek_error(self, results, opt_val, mosek_config, abstol=10e-4):
         """Takes a panel of results including a field of optimal values and computes the relative error
 
             error - using MOSEK as a standard, the error in the optimal value
@@ -292,7 +384,7 @@ class TestFramework(object):
         abstol : float
             The absolute tolerance used for computing the error. Added to the denominator to avoid division by zero.
         """
-        error = pd.DataFrame(index = results.axes[1], columns = results.axes[2])
+        error = pd.DataFrame(index=results.axes[1], columns=results.axes[2])
         for configID in results.axes[2]:
             for problemID in results.axes[1]:
                 absdiff = np.absolute((results.loc[opt_val, problemID, configID] - results.loc[opt_val, problemID, mosek_config]))
@@ -301,7 +393,7 @@ class TestFramework(object):
                 results["error"] = error
 
     @classmethod
-    def compute_performance(self, results, time, rel_max = 10e10):
+    def compute_performance(self, results, time, rel_max=10e10):
         """Takes a panel of results including a field of time data and computes the relative performance
         as defined in Dolan, More 2001. "Benchmarking optimization software with performance profiles"
 
@@ -324,7 +416,7 @@ class TestFramework(object):
             A dummy value that should be larger than any relative performance value. It represents the case
             when the solver does not solve the problem. Defaults to 10e10.
         """
-        performance = pd.DataFrame(index = results.axes[1], columns = results.axes[2])
+        performance = pd.DataFrame(index=results.axes[1], columns=results.axes[2])
         num_problems = 0
         for problem in results.axes[1]:
             num_problems += 1
@@ -353,6 +445,7 @@ class TestFramework(object):
         results["performance"] = performance
 
 
+
 class TestProblem(object):
     """Expands the Problem class to contain extra details relevant to the testing architecture.
 
@@ -362,15 +455,19 @@ class TestProblem(object):
         A unique identifier for this problem.
     problem : cvxpy.Problem
         The cvxpy problem to be solved.
+    tags : list
+        A list of tags in {LP, SOCP, SDP, EXP, MIP} that describe
+        the required solver capabilities to solve this problem.
     """
     def __init__(self, problemID, problem):
         self.id = problemID
         self.problem = problem
+        self.tags = TestProblem.check_cone_types(problem)
 
     @classmethod
     def from_file(self, fileID, problemDir):
-        """Loads a file with name <fileID>.py and returns either a single 
-        TestProblem object or a list of testproblem objects, one for each problem found in the file.
+        """Loads a file with name <fileID>.py and returns a list of
+        testproblem objects, one for each problem found in the file.
 
         Parameters
         ----------
@@ -382,33 +479,86 @@ class TestProblem(object):
 
         Returns
         -------
-        TestProblem - the newly created TestProblem object.
-        or 
-        list of TestProblem
+        a list of cvxbenchmarks.framework.TestProblem objects.
         """
 
         # Load the module
         if problemDir not in sys.path:
             sys.path.insert(0, problemDir)
-        problemModule = __import__(fileID)
+        try:
+            problemModule = __import__(fileID)
+        except Exception as e:
+            warn("Could not import file " + fileID)
+            print(e)
+            return []
 
         foundProblems = [] # Holds the TestProblems we find in this file
 
-        # Look for a dictionary of problems TODO: Add these lists to the settings file.
-        PROBLEM_DICT = ["problems"]
-        for problemDict in PROBLEM_DICT:
-            if problemDict in [name for name in dir(problemModule)]:
-                problems = getattr(problemModule, problemDict):
-                for problemID in problems:
-                    foundProblems.append(TestProblem(problemID, problems[problemID]))
+        # Look for a dictionary
+        PROBLEM_LIST = ["problems"]
+        for problemList in PROBLEM_LIST:
+            if problemList in [name for name in dir(problemModule)]:
+                problems = getattr(problemModule, "problems")
+                for problemDict in problems:
+                    foundProblems.append(TestProblem.processProblemDict(**problemDict))
 
-        if len(foundProblems) == 1:
-            return foundProblems[0] # Don't return a list
-        else if len(foundProblems) == 0:
+        if len(foundProblems) == 0:
             warn(fileID + " contains no problem objects.")
-        else:
-            return foundProblems
-        
+        return foundProblems
+
+
+    @classmethod
+    def processProblemDict(self, **problemDict):
+        """Unpacks a problem dictionary object of the form:
+        {
+            "problemID": problemID,
+            "problem": prob,
+            "opt_val": opt_val
+        }
+
+        and returns a single TestPoblem.
+
+        Parameters
+        ----------
+        **problemDict : **kwargs object containing the above fields.
+
+        Returns
+        -------
+        TestProblem() : TestFramework.TestProblem object.
+        """
+        return TestProblem(problemDict["problemID"], problemDict["problem"])
+
+
+    @classmethod
+    def check_cone_types(self, problem):
+        """
+        Parameters
+        ----------
+        problem : cvxpy.Problem
+            The problem whose cones we are investigating.
+
+        Returns
+        -------
+        coneTypes : list of str
+            A list of strings (defined in cvxbenchmarks.settings). Contains "LP" by default,
+            going through additional cones might add more.
+        """
+
+        coneTypes = set([s.LP]) # Better be able to handle these...
+        for constr in problem.canonicalize()[1]:
+            if isinstance(constr, SDP): # Semidefinite program
+                coneTypes.add(s.SDP)
+            elif isinstance(constr, ExpCone): # Exponential cone program
+                coneTypes.add(s.EXP)
+            elif isinstance(constr, SOC): # Second-order cone program
+                coneTypes.add(s.SOCP)
+            elif isinstance(constr, BoolConstr): # Mixed-integer program
+                coneTypes.add(s.MIP)
+        return coneTypes
+
+    def __str__(self):
+        return str(self.id) + ": " + str(self.problem)
+
     def __eq__(self, other):
         return self.id == other.id and self.problem == other.problem
 
@@ -459,6 +609,9 @@ class SolverConfiguration(object):
         else:
             return None
 
+    def __str__(self):
+        return str((str(self.id), str(self.solver), str(self.verbose), str(self.kwargs)))
+
     def __eq__(self, other):
         return (self.id == other.id) and \
                (self.solver == other.solver) and \
@@ -508,12 +661,12 @@ class TestInstance(object):
         TestResults - A TestResults instance with the results of running this instance.
         """
         problem = self.testproblem.problem
-        results = TestResults(self.testproblem, self.config)
+        results = TestResults(self)
         # results = Test
         try:
             start = time.time() # Time the solve
             print("starting",self.testproblem.id,"with config",self.config.id,"at",start)
-            problem.solve(solver = self.config.solver, verbose = self.config.verbose, **self.config.kwargs)
+            problem.solve(solver=self.config.solver, verbose=self.config.verbose, **self.config.kwargs)
             print("finished solve for", self.testproblem.id, "with config", self.config.id)
             if problem.solver_stats.solve_time is not None:
                 results.solve_time = problem.solver_stats.solve_time
@@ -530,7 +683,7 @@ class TestInstance(object):
         except Exception as e:
             print(e)
             # Configuration could not solve the given problem
-            results = TestResults(self.testproblem, self.config)
+            results = TestResults(self)
             results.size_metrics = problem.size_metrics
             print("failure solving",self.testproblem.id,"with config",self.config.id)
             return results
@@ -593,16 +746,21 @@ class TestInstance(object):
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
 
+    def __str__(self):
+        return str((str(self.testproblem), str(self.config)))
+
+    def hash(self):
+        np.set_printoptions(threshold=10, precision=3) # Shorten the string representation.
+        return hashlib.sha256(str(self).encode("utf-16")).hexdigest()
+        np.set_printoptions(threshold=1000, precision = 8) # Restore defaults
 
 class TestResults(object):
     """Holds the results of running a test instance.
 
     Attributes
     ----------
-    test_problem : TestFramework.TestProblem
-        The problem used to generate these results.
-    config : TestFramework.SolverConfiguration
-        The configuration used to solve the problem.
+    test_instance : TestFramework.TestInstance
+        The hash of the test instance that generated this
     solve_time : float
         The time (in seconds) it took for the solver to solve the problem.
     setup_time : float
@@ -622,9 +780,15 @@ class TestResults(object):
 
     """
 
-    def __init__(self, test_problem, config):
-        self.test_problem = test_problem.id
-        self.config = config.id
+    def __init__(self, test_instance):
+        if test_instance is not None:
+            self.test_problem = test_instance.problem.id
+            self.config = test_instance.config.id
+            self.instancehash = test_instance.hash()
+        else:
+            self.test_problem = None
+            self.config = None
+            self.instancehash = None
         self.solve_time = None
         self.setup_time = None
         self.num_iters = None

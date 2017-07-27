@@ -7,24 +7,42 @@ import cvxpy as cp
 import numpy as np
 import scipy as sp
 
-{% block problemID %}
+# setup
+{% block setup %}
 problemID = "{{ problemID }}"
-{% endblock %}
+prob = None
+opt_val = None
+{% endblock setup %}
+
+
 
 # Variable declarations
-{% block vars %} {% endblock %}
+{% block vars %} {% endblock vars %}
 
 # Problem construction
-problems = {}
-opt_val = None
-{% block problem %} {% endblock %}
+{% block problem %} {% endblock problem%}
 
+# Problem collection
+{% block collectproblems %}
+# Single problem collection
+problemDict = {
+    "problemID" : problemID,
+    "problem"   : prob,
+    "opt_val"   : opt_val
+}
+problems = [problemDict]
+{% endblock collectproblems %}
+
+{% block run %}
 # For debugging individual problems:
 if __name__ == "__main__":
-    for problemID in problems:
+    def printResults(problemID = "", problem = None, opt_val = None):
         print(problemID)
-        prob.solve()
-        print("\tstatus:", prob.status)
-        print("\toptimal value:", prob.value)
-        print("\ttrue optimal value:", opt_val)
-{% endblock %}
+        problem.solve()
+        print("\tstatus: {}".format(problem.status))
+        print("\toptimal value: {}".format(problem.value))
+        print("\ttrue optimal value: {}".format(opt_val))
+    printResults(**problems[0])
+{% endblock run %}
+
+{% endblock problemFile %}

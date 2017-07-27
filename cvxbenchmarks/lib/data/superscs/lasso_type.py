@@ -32,6 +32,5 @@ x = cp.Variable(n)
 
 prob = cp.Problem(cp.Minimize(0.5*cp.sum_squares(A*x) + mu*cp.norm1(x)))
 
-problems = {"superscs_lasso" : prob}
-
+# TODO: Make dictionary
 

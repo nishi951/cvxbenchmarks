@@ -1,4 +1,5 @@
-problemID, m, n, seed
-lasso_0, 20, 50, 1
-lasso_1, 300, 20, 1
-lasso_2, 40, 20, 1
+problemID, m, n, k, rho, mu, seed
+lasso_0, 1500, 5000, 1, 0.01, 1, 0
+lasso_sparse, 1500, 50000, 1, 0.01, 0.1, 0
+mv_lasso_0, 1500, 5000, 10, 0.01, 1, 0
+

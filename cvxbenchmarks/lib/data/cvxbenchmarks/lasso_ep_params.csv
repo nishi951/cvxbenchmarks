@@ -1,5 +1,0 @@
-problemID, m, n, k, rho, mu, seed
-lasso_ep_0, 1500, 5000, 1, 0.01, 1, 0
-lasso_ep_sparse, 1500, 50000, 1, 0.01, 0.1, 0
-mv_lasso_0, 1500, 5000, 10, 0.01, 1, 0
-

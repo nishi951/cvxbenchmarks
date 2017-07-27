@@ -1,19 +1,58 @@
 {% extends "problem.j2" %}
 
 {% block vars %}
-n = {{ n }}
-m = {{ m }}
+import scipy.sparse as sps
 
+def normalized_data_matrix(m, n, mu):
+    if mu == 1:
+        # dense
+        A = np.random.randn(m, n)
+        A /= np.sqrt(np.sum(A**2, 0))
+    else:
+        # sparse
+        A = sps.rand(m, n, mu)
+        A.data = np.random.randn(A.nnz)
+        N = A.copy()
+        N.data = N.data**2
+        A = A*sps.diags([1 / np.sqrt(np.ravel(N.sum(axis=0)))], [0])
+
+    return A
+
+def create_regression(m, n, k=1, rho=1, mu=1, sigma=0.05):
+    """Create a random (multivariate) regression problem."""
+
+    A = normalized_data_matrix(m, n, mu)
+    X0 = sps.rand(n, k, rho)
+    X0.data = np.random.randn(X0.nnz)
+
+    if k == 1:
+        x0 = sps.rand(n, 1, rho)
+        x0.data = np.random.randn(x0.nnz)
+        x0 = x0.toarray().ravel()
+        b = A.dot(x0) + sigma*np.random.randn(m)
+        return A, b
+    else:
+        X0 = sps.rand(n, k, rho)
+        X0.data = np.random.randn(X0.nnz)
+        X0 = X0.toarray()
+        B = A.dot(X0) + sigma*np.random.randn(m,k)
+        return A, B
+
+m = {{ m }}
+n = {{ n }}
+rho = {{ rho }}
+mu = {{ mu }}
+k = {{ k }}
 np.random.seed({{ seed }})
 
-A = np.random.rand(m, n)
-b = np.random.rand(m)
-Lambda = 5
+A, B = create_regression(m, n, k = k, rho = rho, mu = mu)
+lambda_max = np.abs(A.T.dot(B)).max()
+lam = 0.5*lambda_max
 
-x = cp.Variable(n)
+X = cp.Variable(A.shape[1], B.shape[1] if len(B.shape) > 1 else 1)
 {% endblock %}
 
 {% block problem %}
-objective = cp.Minimize(0.5*cp.sum_squares(A*x - b) + Lambda*cp.pnorm(x, 1))
-prob = cp.Problem(objective)
+f = cp.sum_squares(A*X - B) + lam*cp.norm1(X)
+prob = cp.Problem(cp.Minimize(f))
 {% endblock %}

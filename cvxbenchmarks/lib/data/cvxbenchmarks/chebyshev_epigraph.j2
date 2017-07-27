@@ -1,7 +1,8 @@
 {% extends "chebyshev.j2" %}
 
-{% block problemID %}
-problemID = "{{ problemID }}_epigraph"
+{% block setup %}
+{{ super() }}
+problemID = problemID + "_epigraph"
 {% endblock %}
 
 {% block problem %}
@@ -14,4 +15,5 @@ for i in range(k):
     C.append(cp.pnorm(A[i]*x, 2) <= t[i])
 
 prob = cp.Problem(cp.Minimize(f), C)
+opt_val = None
 {% endblock %}

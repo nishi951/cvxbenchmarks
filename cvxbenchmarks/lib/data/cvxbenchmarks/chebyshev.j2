@@ -30,6 +30,5 @@ x = cp.Variable(n)
 obj_list = [cp.pnorm(A[i]*x, 2) + cp.abs(B[i,:]*x - c[i]) for i in range(k)]
 f = cp.max_elemwise(obj_list)
 
-problems.append(cp.Problem(cp.Minimize(f)))
-opt_vals.append(None)
+prob = cp.Problem(cp.Minimize(f))
 {% endblock %}
