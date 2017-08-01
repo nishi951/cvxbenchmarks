@@ -5,12 +5,15 @@ import argparse
 
 def get_command_line_args():
     """
-    TODO: Implement all options:
+    TODO: Read configuration file.
 
     analyze : Produce and display results from running the tests
         options:
-            -r, --results : the file where the results are stored 
-            (defaults to results.dat)
+            --results : the file where the results are stored 
+                        defaults to results.dat)
+            --format : {"pdf", "png"} the file format to save 
+                       the figures to.
+            --
 
     generate :  
         options:
@@ -33,6 +36,7 @@ def get_command_line_args():
                         a list of problems
             --problemDir : the directory containing the problems (from which 
                            the problems will be read)
+            --parallel : whether or not to run the tests in parallel.
 
     """
     parser = argparse.ArgumentParser("cvxbench")
@@ -86,10 +90,12 @@ def get_command_line_args():
                         help=("a list of <solver>_config configurations. "+
                         "if unset, the framework runs all available "+
                         "configurations."))
+    parser.add_argument("--parallel", action='store_true',
+                        help="run the tests in parallel")
 
     # render
     # --template-and-params
 
     args = parser.parse_args()
-    print(args)
+    # print(args)
     return args

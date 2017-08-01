@@ -3,19 +3,81 @@
 
 import pandas as pd
 import numpy as np
+import data_visualization as dv
+import matplotlib.pyplot as plt
+import math
 
 from cvxbenchmarks.scripts.utils import get_command_line_args
 
 def main(args):
     # Load results.dat
     print("Loading results...")
-    results = pd.read_hdf(args.results)
+    results = pd.read_pickle(args.results)
     print("Done.")
-    with pd.option_context('display.max_rows', None):
-        print(results.to_frame(filter_observations = False))
-    # items = statistics
-    # major_axis = problemIDs
-    # minor_axis = configIDs
+
+    # Data Visualization
+    # Generate performance profiles for all solver configurations
+    # Graph performance profile:
+    plt.figure()
+    dv.plot_performance_profile(results)
+    plt.draw()
+
+    # Graph time vs. big(small)^2
+    plt.figure()
+    dv.plot_scatter_by_config(results, "max_big_small_squared", "solve_time")
+    plt.draw()
+
+    # Graph time vs. number of scalar variables
+    plt.figure()
+    dv.plot_scatter_by_config(results, "num_scalar_variables", "solve_time", logx = True, logy = True)
+    plt.draw()
+
+    # Graph time vs. number of scalar data
+    plt.figure()
+    dv.plot_scatter_by_config(results, "num_scalar_data", "solve_time", logx = True, logy = True)
+    plt.draw()
+
+    # Graph time vs. number of scalar constraints
+    plt.figure()
+    dv.plot_scatter_by_config(results, ["num_scalar_eq_constr", "num_scalar_leq_constr"], "solve_time", logx = False, logy = True)
+    plt.draw()
+
+    # Graph num_iterations vs. number of scalar variables
+    # Graph time vs. number of scalar variables
+    plt.figure()
+    dv.plot_scatter_by_config(results, "num_scalar_variables", "num_iterations", logx = True, logy = False)
+    plt.draw()
+
+    # Graph histogram of solve accuracies (relative to mosek)
+    plt.figure()
+    dv.plot_histograms_by_config(results)
+    plt.draw()
+
+    # Show figures
+    # plt.show()
+
+    # Save figures to a single file:
+    if args.format == "pdf":
+        # http://stackoverflow.com/questions/26368876/saving-all-open-matplotlib-figures-in-one-file-at-once
+        from matplotlib.backends.backend_pdf import PdfPages
+        import matplotlib.pyplot as plt
+
+        def multipage(filename, figs=None, dpi=200):
+            pp = PdfPages(filename)
+            if figs is None:
+                figs = [plt.figure(n) for n in plt.get_fignums()]
+            for fig in figs:
+                fig.savefig(pp, format='pdf')
+            pp.close()
+
+        multipage("figs.pdf")
+        with pd.option_context('display.max_rows', None):
+            print(results.to_frame(filter_observations = False))
+        # items = statistics
+        # major_axis = problemIDs
+        # minor_axis = configIDs
+    else:
+        plt.savefig("figs.png")
 
     # Find infeasible problems:
     for problem in results.major_axis:
@@ -32,8 +94,6 @@ def main(args):
             status_counts.loc[config, str(results.loc["status", problem, config])] += 1
     print("Solver status counts")
     print(status_counts)
-
-
 
     # Calculate aggregate statistics:
     # Average error:

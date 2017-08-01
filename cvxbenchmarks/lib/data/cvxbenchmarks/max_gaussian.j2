@@ -1,4 +1,4 @@
-{% extends "problem.j2" %}
+{% extends "utils/problem.j2" %}
 
 {% block vars %}
 np.random.seed({{ seed }})
@@ -8,15 +8,15 @@ k = {{ k }}
 A = np.matrix(np.random.rand(m,n))
 A -= np.mean(A, axis=0)
 K = np.array([(A[i].T*A[i]).flatten() for i in range(m)])
-
-sigma = cp.Variable(n,n)
-t = cp.Variable(m)
-tdet = cp.Variable(1)
 {% endblock %}
 
 {% block problem %}
+sigma_inv1 = cp.Variable(n,n) # Inverse covariance matrix
+t = cp.Variable(m)
+tdet = cp.Variable(1)
+
 f = cp.sum_largest(t+tdet, k)
-z = K*cp.reshape(sigma, n*n, 1)
-C = [-cp.log_det(sigma) <= tdet, t == z]
+z = K*cp.reshape(sigma_inv1, n*n, 1)
+C = [-cp.log_det(sigma_inv1) <= tdet, t == z]
 prob = cp.Problem(cp.Minimize(f), C)
 {% endblock %}

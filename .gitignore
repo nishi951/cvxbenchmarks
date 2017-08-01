@@ -9,10 +9,17 @@
 *randomConeProb.py
 *.ipynb_checkpoints
 
+# Pytest Coverage
+.coverage
+htmlcov
+
+# Random files
 cvxbenchmarks/old
 cvxbenchmarks/figs.pdf
 cvxbenchmarks/results.dat
-
+*index.tex
+*index.txt
+.cache*
 
 
 # Large problem databases

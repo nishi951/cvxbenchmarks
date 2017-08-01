@@ -1,0 +1,22 @@
+{% extends "oneclass_svm.j2" %}
+
+{% block setup %}
+{{ super() }}
+problemID = problemID + "_original"
+{% endblock %}
+
+{% block problem %}
+# Most similar to formulation found in paper:
+# Tax, Duin 2001. "Uniform object generation for
+# optimizing one-class classifiers."
+x = cp.Variable(n)
+rho = cp.Variable(1)
+xi = cp.Variable(m)
+
+f = rho + lam*cp.sum_entries(xi)
+C = [rho >= 0]
+for i in range(m):
+    C += [cp.sum_squares(A[i,:].T - x) <= rho + xi[i]]
+    C += [xi[i] >= 0]
+prob = cp.Problem(cp.Minimize(f), C)
+{% endblock %}

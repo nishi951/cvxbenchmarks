@@ -70,17 +70,16 @@ class ProblemTemplate(object):
         """
         templateDir = os.path.dirname(templateFile)
         templateName = os.path.basename(templateFile)
-        name = templateName
+        self.name = templateName
         try:
             env = Environment(loader=FileSystemLoader(templateDir))
-            template = env.get_template(templateName)
+            self.template = env.get_template(templateName)
         except Exception as e:
-            print(("Problem locating template {template} "
+            print(("Problem loading template {template} "
                     "in {templateDir}. "
-                    "Check template file path."
                   ).format(template=templateName, templateDir=templateDir))
-
-        self.template = template
+            print(e)
+            self.template = None
         return
 
     def read_param_csv(self, paramFile, overwrite):
@@ -152,8 +151,9 @@ class ProblemTemplate(object):
                 with open(os.path.join(problemDir, 
                                        instanceID + ".py"), "w") as f:
                     f.write(self.template.render(paramDict))
-        except:
+        except Exception as e:
             print("Unable to render template: {}".format(self.name))
+            print(e)
 
     def __str__(self):
         if len(self.params) > 0:

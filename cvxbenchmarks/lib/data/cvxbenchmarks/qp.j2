@@ -1,4 +1,4 @@
-{% extends "problem.j2" %}
+{% extends "utils/problem.j2" %}
 
 {% block vars %}
 np.random.seed({{ seed }})
@@ -14,10 +14,10 @@ u = np.random.randn(n);
 lb = np.minimum(l,u);
 ub = np.maximum(l,u);
 
-x = cp.Variable(n)
 {% endblock %}
 
 {% block problem %}
+x = cp.Variable(n)
 f = 0.5*cp.quad_form(x, P) + q.T*x + r
 C = [x >= lb,
      x <= ub]

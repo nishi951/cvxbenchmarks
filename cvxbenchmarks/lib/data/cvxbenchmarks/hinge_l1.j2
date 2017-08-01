@@ -1,37 +1,12 @@
-{% extends "problem.j2" %}
+{% extends "utils/problem.j2" %}
+{% import "utils/helpers.j2" as helpers %}
 
 {% block vars %}
 import scipy.sparse as sps
 
-def normalized_data_matrix(m, n, mu):
-    if mu == 1:
-        # dense
-        A = np.random.randn(m, n)
-        A /= np.sqrt(np.sum(A**2, 0))
-    else:
-        # sparse
-        A = sps.rand(m, n, mu)
-        A.data = np.random.randn(A.nnz)
-        N = A.copy()
-        N.data = N.data**2
-        A = A*sps.diags([1 / np.sqrt(np.ravel(N.sum(axis=0)))], [0])
+{{ helpers.normalized_data_matrix() }}
+{{ helpers.create_classification() }}
 
-    return A
-
-def create_classification(m, n, rho=1, mu=1, sigma=0.05):
-    """Create a random classification problem."""
-    A = normalized_data_matrix(m, n, mu)
-    x0 = sps.rand(n, 1, rho)
-    x0.data = np.random.randn(x0.nnz)
-    x0 = x0.toarray().ravel()
-
-    b = np.sign(A.dot(x0) + sigma*np.random.randn(m))
-    return A, b
-
-def hinge_loss(theta, X, y):
-    if not all(np.unique(y) == [-1, 1]):
-        raise ValueError("y must have binary labels in {-1,1}")
-    return cp.sum_entries(cp.max_elemwise(1 - sps.diags([y],[0])*X*theta, 0))
 
 np.random.seed({{ seed }})
 
@@ -43,12 +18,15 @@ mu = {{ mu }}
 lam = 0.5*sigma*np.sqrt(m*np.log(mu*n))
 
 A, b = create_classification(m, n, rho=rho, mu=mu, sigma=sigma)
-
-
-x = cp.Variable(A.shape[1])
-f = hinge_loss(x, A, b) + lam*cp.norm1(x)
 {% endblock %}
 
 {% block problem %}
+def hinge_loss(theta, X, y):
+    if not all(np.unique(y) == [-1, 1]):
+        raise ValueError("y must have binary labels in {-1,1}")
+    return cp.sum_entries(cp.max_elemwise(1 - sps.diags([y],[0])*X*theta, 0))
+
+x = cp.Variable(A.shape[1])
+f = hinge_loss(x, A, b) + lam*cp.norm1(x)
 prob = cp.Problem(cp.Minimize(f))
 {% endblock %}

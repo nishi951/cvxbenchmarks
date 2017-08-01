@@ -1,0 +1,7 @@
+cvxpy >= 0.4.8'
+pandas >= 0.18.1'
+tabulate >= 0.7.5'
+Jinja2 >= 2.9.6'
+matplotlib >= 2.0.2'
+multiprocess >= 0.70.5'
+mock >= 2.0.0'

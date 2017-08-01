@@ -12,9 +12,13 @@ setup(
     package_dir = {'cvxbenchmarks': 'cvxbenchmarks'},
     zip_safe = False,
     use_2to3 = True,
-    install_requires = ['cvxpy >= 0.4.2',
+    install_requires = ['cvxpy >= 0.4.8',
                         'pandas >= 0.18.1',
                         'tabulate >= 0.7.5',
+                        'Jinja2 >= 2.9.6',
+                        'matplotlib >= 2.0.2',
+                        'multiprocess >= 0.70.5',
+                        'mock >= 2.0.0'
                         ],
     entry_points = {
         'console_scripts': ['cvxbench=cvxbenchmarks.command_line:main']

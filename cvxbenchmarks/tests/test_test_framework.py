@@ -1,5 +1,5 @@
 import pytest
 
-import cvxbenchmarks.test_framework as t
+import cvxbenchmarks.framework as t
 
 

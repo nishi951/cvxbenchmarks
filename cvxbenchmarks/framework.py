@@ -43,8 +43,9 @@ def worker(problemDir, configDir, work_queue, done_queue):
     done_queue : multiprocessing.Queue
         A queue for returning the TestResult objects to the main process.
 
-    A note on the design: because future problems might become quite large, it might become infeasible
-    to pass them directly to the workers via queues. Instead we pass just the file paths and let the worker
+    A note on the design: because future problems might become quite large, 
+    it might become infeasible to pass them directly to the workers via 
+    queues. Instead we pass just the file paths and let the worker
     read the problem directly into its own memory space. 
 
     To return the result, we need to 
@@ -65,8 +66,8 @@ def worker(problemDir, configDir, work_queue, done_queue):
 
 
 class TestFramework(object):
-    """An object for managing the running of lots of configurations against lots
-    of individual problem instances.
+    """An object for managing the running of lots of configurations 
+    against lots of individual problem instances.
 
     Attributes
     ----------
@@ -105,7 +106,8 @@ class TestFramework(object):
 
     """
 
-    def __init__(self, problemDir, configDir, problems=None, configs=None, cacheFile=".cache.dat", 
+    def __init__(self, problemDir, configDir, 
+                 problems=None, configs=None, cacheFile=".cache.dat", 
                  parallel=False, tags=None):
         self.problemDir = problemDir
         self.configDir = configDir
@@ -149,14 +151,15 @@ class TestFramework(object):
         Parameters
         ----------
         fileID : string
-            A unique identifier for the file to be loaded. File containing the problem
-            should be in the format <fileID>.py.
+            A unique identifier for the file to be loaded. File 
+            containing the problem should be in the format <fileID>.py.
             <fileID>.py can also contain a list of problems.
         """
         self.problems.extend(TestProblem.from_file(fileID, self.problemDir))
 
     def preload_all_problems(self):
-        """Loads all the problems in self.problemDir and adds them to self.test_problems.
+        """Loads all the problems in self.problemDir and adds them to 
+        self.test_problems.
         """
         for dirname, dirnames, filenames in os.walk(self.problemDir):
             for filename in filenames:
@@ -164,14 +167,15 @@ class TestFramework(object):
                     self.load_problem_file(filename[0:-3])
 
     def load_config(self, configID):
-        """Loads a single solver configuration, checking if cvxpy supports it:
-            pass and appends it to self.configs
+        """Loads a single solver configuration, checking if 
+           cvxpy supports it:
 
         Parameters
         ----------
         configID : string
-            A unique identifier for the solver configuration to be loaded. File containing
-            the configuration should be in the form <configID>.py.
+            A unique identifier for the solver configuration to be 
+            loaded. File containing the configuration should be in the form 
+            <configID>.py.
         """
         config = SolverConfiguration.from_file(configID, self.configDir)
         if config is not None:
@@ -227,7 +231,7 @@ class TestFramework(object):
         else:
             import hashlib, shelve
             # Load the shelf:
-            with shelve.open(self.cache, "c") as cachedResults: # Maps hashes to TestResult objects
+            with shelve.open(self.cacheFile, "c") as cachedResults: # Maps hashes to TestResult objects
                 for instance in self._instances:
                     instancehash = instance.hash()
                     if instancehash in cachedResults:
@@ -262,7 +266,7 @@ class TestFramework(object):
                 print((instance.testproblem.id, instance.config.id))
                 work_queue.put((instance.testproblem.id, instance.config.id))
         else:
-            with shelve.open(self.cache, "c") as cachedResults: # Maps hashes to TestResult objects
+            with shelve.open(self.cacheFile, "c") as cachedResults: # Maps hashes to TestResult objects
                 for instance in self._instances:
                     instancehash = instance.hash()
                     if instancehash in cachedResults:
@@ -292,17 +296,17 @@ class TestFramework(object):
                 result = done_queue.get()
                 if result == STOP:
                     processes_left -= 1
-                    print("Processes left: ",str(processes_left))
+                    print("Processes left: {}".format(str(processes_left)))
                 else:
                     self._results.append(result)
                     if use_cache: # Add this result to the cache.
-                        with shelve.open(self.cache, "c") as cachedResults:
+                        with shelve.open(self.cacheFile, "c") as cachedResults:
                             cachedResults[result.instancehash] = result
                 # print "received!"
             time.sleep(0.5) # Wait for processes to run.
 
         for p in processes:
-            print("process",p,"exited with code",p.exitcode)
+            print("process {} exited with code {}".format(p,p.exitcode))
         return
 
     def export_results_as_panel(self):
@@ -429,7 +433,7 @@ class TestFramework(object):
 
             if best == rel_max:
                 # No solver could solve this problem.
-                print("all solvers failed on",problem)
+                print("all solvers failed on {}".format(problem))
                 for config in results.axes[2]:
                     performance.loc[problem, config] = rel_max;
                 continue
@@ -465,7 +469,7 @@ class TestProblem(object):
         self.tags = TestProblem.check_cone_types(problem)
 
     @classmethod
-    def from_file(self, fileID, problemDir):
+    def from_file(cls, fileID, problemDir):
         """Loads a file with name <fileID>.py and returns a list of
         testproblem objects, one for each problem found in the file.
 
@@ -474,8 +478,8 @@ class TestProblem(object):
         fileID : string
         problemDir : string
             The directory where the problem files are located.
-            Each problem file should have a dicionary named "problems" that maps
-            the problem name to the corresponding cvxpy.Problem object.
+            Each problem file should have a list named "problems" 
+            of dicionaries that describe the problem objects.
 
         Returns
         -------
@@ -500,7 +504,7 @@ class TestProblem(object):
             if problemList in [name for name in dir(problemModule)]:
                 problems = getattr(problemModule, "problems")
                 for problemDict in problems:
-                    foundProblems.append(TestProblem.processProblemDict(**problemDict))
+                    foundProblems.append(cls.processProblemDict(**problemDict))
 
         if len(foundProblems) == 0:
             warn(fileID + " contains no problem objects.")
@@ -508,7 +512,7 @@ class TestProblem(object):
 
 
     @classmethod
-    def processProblemDict(self, **problemDict):
+    def processProblemDict(cls, **problemDict):
         """Unpacks a problem dictionary object of the form:
         {
             "problemID": problemID,
@@ -524,13 +528,13 @@ class TestProblem(object):
 
         Returns
         -------
-        TestProblem() : TestFramework.TestProblem object.
+        TestFramework.TestProblem object.
         """
-        return TestProblem(problemDict["problemID"], problemDict["problem"])
+        return cls(problemDict["problemID"], problemDict["problem"])
 
 
-    @classmethod
-    def check_cone_types(self, problem):
+    @staticmethod
+    def check_cone_types(problem):
         """
         Parameters
         ----------
@@ -585,7 +589,7 @@ class SolverConfiguration(object):
         self.kwargs = kwargs
 
     @classmethod
-    def from_file(self, configID, configDir):
+    def from_file(cls, configID, configDir):
         """Alternative constructor for loading a configuration from a text file.
         Loads a python file named <configID>.py with variables "solver", "verbose",
         and "kwargs".
@@ -605,7 +609,7 @@ class SolverConfiguration(object):
             sys.path.insert(0, configDir)
         configObj = __import__(configID)
         if configObj.solver in cvx.installed_solvers():
-            return SolverConfiguration(configID, configObj.solver, configObj.verbose, configObj.kwargs)
+            return cls(configID, configObj.solver, configObj.verbose, configObj.kwargs)
         else:
             return None
 
@@ -665,9 +669,9 @@ class TestInstance(object):
         # results = Test
         try:
             start = time.time() # Time the solve
-            print("starting",self.testproblem.id,"with config",self.config.id,"at",start)
+            print("starting {} with config {}".format(self.testproblem.id, self.config.id))
             problem.solve(solver=self.config.solver, verbose=self.config.verbose, **self.config.kwargs)
-            print("finished solve for", self.testproblem.id, "with config", self.config.id)
+            print("finished solve for {} with config {}".format(self.testproblem.id, self.config.id))
             if problem.solver_stats.solve_time is not None:
                 results.solve_time = problem.solver_stats.solve_time
             else:
@@ -685,26 +689,35 @@ class TestInstance(object):
             # Configuration could not solve the given problem
             results = TestResults(self)
             results.size_metrics = problem.size_metrics
-            print("failure solving",self.testproblem.id,"with config",self.config.id)
+            print(("failure solving {} " + 
+                   "with config {} " +
+                   "in {} sec.").format(self.testproblem.id, 
+                                        self.config.id,
+                                        round(time.time()-start, 1)))
             return results
 
         # Record residual gross stats:
         results.avg_abs_resid, results.max_resid = TestInstance.compute_residual_stats(problem)
-        print("computed stats for", self.testproblem.id, "with config", self.config.id)
+        print("computed stats for {} with config {}".format(self.testproblem.id, self.config.id))
 
         # Record problem metrics:
         results.size_metrics = problem.size_metrics
 
-        print("finished",self.testproblem.id,"with config",self.config.id,"at",time.time()-start)
+        print("finished {} with config {} in {} sec.".format(self.testproblem.id, self.config.id, round(time.time()-start, 1)))
         return results
 
-    @classmethod
-    def compute_residual_stats(self, problem):
+    @staticmethod
+    def compute_residual_stats(problem):
         """Computes the average absolute residual and the maximum residual
         of the current problem.
 
-        Returns:
-        --------
+        Parameters
+        ----------
+        problem : cvxpy.Problem
+            The problem whose residual stats we are computing.
+
+        Returns
+        -------
         avg_abs_resid : float or None
             The average absolute residual over all the scalar constraints of the problem.
         max_resid : float or None
@@ -737,7 +750,7 @@ class TestInstance(object):
             elif isinstance(res, type(None)):
                 pass
             else:
-                print("Unknown residual type:", type(res))
+                print("Unknown residual type: {}".format(type(res)))
 
             # Get max absolute residual:
             if max_residual < thismax:
@@ -751,8 +764,9 @@ class TestInstance(object):
 
     def hash(self):
         np.set_printoptions(threshold=10, precision=3) # Shorten the string representation.
-        return hashlib.sha256(str(self).encode("utf-16")).hexdigest()
+        digest = hashlib.sha256(str(self).encode("utf-16")).hexdigest()
         np.set_printoptions(threshold=1000, precision = 8) # Restore defaults
+        return digest
 
 class TestResults(object):
     """Holds the results of running a test instance.
@@ -782,7 +796,7 @@ class TestResults(object):
 
     def __init__(self, test_instance):
         if test_instance is not None:
-            self.test_problem = test_instance.problem.id
+            self.test_problem = test_instance.testproblem.id
             self.config = test_instance.config.id
             self.instancehash = test_instance.hash()
         else:

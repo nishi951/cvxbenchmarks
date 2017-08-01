@@ -1,4 +1,4 @@
-{% extends "problem.j2" %}
+{% extends "utils/problem.j2" %}
 
 {% block vars %}
 # Generate data for control problem.
@@ -11,13 +11,12 @@ beta = 5
 A = np.eye(n) + alpha*np.random.randn(n,n)
 B = np.random.randn(n,m)
 x_0 = beta*np.random.randn(n,1)
-
-# Form and solve control problem.
-x = cp.Variable(n, T+1)
-u = cp.Variable(m, T)
 {% endblock %}
 
 {% block problem %}
+# Form and solve control problem.
+x = cp.Variable(n, T+1)
+u = cp.Variable(m, T)
 states = []
 for t in range(T):
     cost = cp.pnorm(u[:,t], 1)

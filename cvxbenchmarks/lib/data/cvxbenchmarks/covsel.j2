@@ -1,4 +1,4 @@
-{% extends "problem.j2" %}
+{% extends "utils/problem.j2" %}
 
 {% block vars %}
 np.random.seed({{ seed }})
@@ -16,10 +16,11 @@ X = np.random.randn(m,n).dot(L.T)
 S = X.T.dot(X)/m
 W = np.ones((n,n)) - np.eye(n)
 
-Theta = cp.Variable(n,n)
+
 {% endblock %}
 
 {% block problem %}
+Theta = cp.Variable(n,n)
 prob = cp.Problem(cp.Minimize(
         lam*cp.norm1(cp.mul_elemwise(W,Theta)) +
         cp.sum_entries(cp.mul_elemwise(S,Theta)) -

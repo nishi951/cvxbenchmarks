@@ -1,20 +1,8 @@
-{% extends "problem.j2" %}    
+{% extends "utils/problem.j2" %}    
+{% import "utils/helpers.j2" as helpers %}
 
 {% block vars %}
-def normalized_data_matrix(m, n, mu):
-    if mu == 1:
-        # dense
-        A = np.random.randn(m, n)
-        A /= np.sqrt(np.sum(A**2, 0))
-    else:
-        # sparse
-        A = sp.rand(m, n, mu)
-        A.data = np.random.randn(A.nnz)
-        N = A.copy()
-        N.data = N.data**2
-        A = A*sp.diags([1 / np.sqrt(np.ravel(N.sum(axis=0)))], [0])
-
-    return A
+{{ helpers.normalized_data_matrix() }}
 
 np.random.seed({{ seed }})
 m = {{ m }}

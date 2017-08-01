@@ -1,4 +1,7 @@
 # cvxbenchmarks
+
+TODO(mark) Update all of this once things settle down.
+
 A testing framework for convex solvers in CVXPY.
 
 ## Setup

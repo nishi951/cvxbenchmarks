@@ -1,4 +1,4 @@
-{% extends "problem.j2" %}
+{% extends "utils/problem.j2" %}
 
 {% block vars %}
 import scipy.sparse as sps
@@ -9,15 +9,15 @@ n = {{ n }}
 
 A = np.random.randn(m,n);
 A = A*sps.diags([1 / np.sqrt(np.sum(A**2, 0))], [0])
-b = A.dot(10*np.random.randn(n))
+b = A.dot(10*np.random.randn(n) + 5*np.random.randn(1))
 
 k = max(m//50, 1)
 idx = np.random.randint(0, m, k)
 b[idx] += 100*np.random.randn(k)
-
-x = cp.Variable(n)
 {% endblock %}
 
 {% block problem %}
-prob = cp.Problem(cp.Minimize(cp.norm1(A*x - b)))
+x = cp.Variable(n)
+v = cp.Variable(1)
+prob = cp.Problem(cp.Minimize(cp.norm1(A*x + v*np.ones(m) - b)))
 {% endblock %}

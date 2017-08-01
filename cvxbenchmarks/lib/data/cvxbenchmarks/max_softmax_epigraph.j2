@@ -1,0 +1,24 @@
+{% extends "max_softmax.j2" %}
+
+{% block setup %}
+{{ super() }}
+problemID = problemID + "_epigraph"
+{% endblock %}
+
+{% block problem %}
+def one_hot(y, k):
+    m = len(y)
+    return sps.coo_matrix((np.ones(m), (np.arange(m), y)), shape=(m, k)).todense()
+
+Theta = cp.Variable(n,k)
+beta = cp.Variable(1, k)
+t = cp.Variable(m)
+texp = cp.Variable(m)
+
+f = cp.sum_largest(t+texp, p) + cp.sum_squares(Theta)
+C = []
+C.append(cp.log_sum_exp(X*Theta + np.ones((m, 1))*beta, axis=1) <= texp)
+Yi = one_hot(Y, k)
+C.append(t == cp.vstack([-(X[i]*Theta + beta)[Y[i]] for i in range(m)]))
+prob = cp.Problem(cp.Minimize(f), C)
+{% endblock %}
