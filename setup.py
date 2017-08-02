@@ -18,6 +18,7 @@ setup(
                         'Jinja2 >= 2.9.6',
                         'matplotlib >= 2.0.2',
                         'multiprocess >= 0.70.5',
+                        'tables >= 3.2.0'
                         ],
     entry_points = {
         'console_scripts': ['cvxbench=cvxbenchmarks.command_line:main']

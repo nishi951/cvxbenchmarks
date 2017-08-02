@@ -3,21 +3,24 @@
 
 import pandas as pd
 import numpy as np
-import data_visualization as dv
-import matplotlib.pyplot as plt
+import cvxbenchmarks.data_visualization as dv
+
 import math
 
 from cvxbenchmarks.scripts.utils import get_command_line_args
 
 def main(args):
     # Load results.dat
-    print("Loading results...")
-    results = pd.read_pickle(args.results)
+    print("Loading results from {}...".format(args.results))
+    # results = pd.read_pickle(args.results)
+    results = pd.read_hdf(args.results)
+    print(results.to_frame(filter_observations = False))
     print("Done.")
 
     # Data Visualization
     # Generate performance profiles for all solver configurations
     # Graph performance profile:
+    import matplotlib.pyplot as plt
     plt.figure()
     dv.plot_performance_profile(results)
     plt.draw()
@@ -45,7 +48,7 @@ def main(args):
     # Graph num_iterations vs. number of scalar variables
     # Graph time vs. number of scalar variables
     plt.figure()
-    dv.plot_scatter_by_config(results, "num_scalar_variables", "num_iterations", logx = True, logy = False)
+    dv.plot_scatter_by_config(results, "num_scalar_variables", "num_iters", logx = True, logy = False)
     plt.draw()
 
     # Graph histogram of solve accuracies (relative to mosek)
@@ -77,7 +80,10 @@ def main(args):
         # major_axis = problemIDs
         # minor_axis = configIDs
     else:
-        plt.savefig("figs.png")
+        for i in plt.get_fignums():
+            plt.figure(i)
+            plt.tight_layout()
+            plt.savefig('figure{}.png'.format(i))
 
     # Find infeasible problems:
     for problem in results.major_axis:

@@ -13,6 +13,7 @@ def main(args):
     configs = args.configs
     problems = args.problems
     parallel = args.parallel
+    resultsFile = args.results
 
 
     framework = TestFramework(problemDir = problemDir, configDir = configDir)
@@ -20,8 +21,8 @@ def main(args):
     if problems is None:
         framework.preload_all_problems()
     else:
-        for problem in problems:
-            framework.load
+        for problem in args.problems:
+            framework.load_problem_file(problem)
 
     print("\tDone.")
 
@@ -29,7 +30,7 @@ def main(args):
     if configs is None:
         framework.preload_all_configs()
     else:
-        for config in args.configs:
+        for config in configs:
             framework.load_config(config)
     print("\tDone.")
 
@@ -54,7 +55,13 @@ def main(args):
     results = framework.export_results_as_panel()
     print(results.to_frame(filter_observations = False)) #filter_observations = False prevents rows with NaN from not appearing.
     # Save data frame to a file.
-    results.to_pickle("results.dat")
+    # results.to_pickle(resultsFile+".pkl")
+
+    import warnings
+    warnings.filterwarnings('ignore',category=pandas.io.pytables.PerformanceWarning)
+    
+    results.to_hdf(resultsFile, key="results", mode="w")
+    print("saved results to {}".format(resultsFile))
 
 if __name__ == '__main__':
     main(get_command_line_args())

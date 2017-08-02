@@ -51,9 +51,12 @@ def get_command_line_args():
     # Script-specific
     # analyze
     parser.add_argument("--results", type=str, 
-                        default="cvxbenchmarks/results.dat",
+                        default="cvxbenchmarks/results.hdf",
                         help=("the data file to which the results data " +
                               "frame will be written."))
+    parser.add_argument("--format", type=str,
+                        default="png",
+                        help="The format to output the plots to.")
 
     # generate
     parser.add_argument("--tags", type=str, nargs='+',

@@ -20,7 +20,9 @@ cvxbenchmarks/results.dat
 *index.tex
 *index.txt
 .cache*
-
+*.hdf
+*.dat
+*.png
 
 # Large problem databases
 ###########

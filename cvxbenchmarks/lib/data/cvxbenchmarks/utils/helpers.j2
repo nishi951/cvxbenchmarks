@@ -8,11 +8,11 @@ def normalized_data_matrix(m, n, mu):
         A /= np.sqrt(np.sum(A**2, 0))
     else:
         # sparse
-        A = sp.rand(m, n, mu)
+        A = sps.rand(m, n, mu)
         A.data = np.random.randn(A.nnz)
         N = A.copy()
         N.data = N.data**2
-        A = A*sp.diags([1 / np.sqrt(np.ravel(N.sum(axis=0)))], [0])
+        A = A*sps.diags([1 / np.sqrt(np.ravel(N.sum(axis=0)))], [0])
 
     return A
 {%- endmacro %}

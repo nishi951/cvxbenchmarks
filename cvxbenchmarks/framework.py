@@ -237,6 +237,9 @@ class TestFramework(object):
                     if instancehash in cachedResults:
                         # Retrieve TestResult from the results dictionary:
                         self._results.append(cachedResults[instancehash])
+                        print(("Retrieved instance result ({}, {}) " +
+                               "from cache.").format(instance.problem.id,
+                                                     instance.config.id))
                     else:
                         # Add this result to the cache
                         result = instance.run()

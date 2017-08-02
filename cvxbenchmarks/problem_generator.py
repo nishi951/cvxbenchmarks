@@ -148,6 +148,7 @@ class ProblemTemplate(object):
         try:
             for paramDict in self.params:
                 instanceID = paramDict["problemID"]
+                print(open)
                 with open(os.path.join(problemDir, 
                                        instanceID + ".py"), "w") as f:
                     f.write(self.template.render(paramDict))

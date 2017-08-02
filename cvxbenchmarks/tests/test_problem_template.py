@@ -13,6 +13,7 @@ def env(request):
     TEMPLATE = \
     """
 test
+{{ problemID }}
 {{ a }}
 {{ b }}
     """
@@ -24,9 +25,9 @@ test
 @pytest.fixture
 def paramsDf(request):
     PARAMS = """\
-a,b
-1,2
-3,4
+problemID,a,b
+p1,1,2
+p2,3,4
     """
     paramsDf = pd.read_csv(io.StringIO(PARAMS))
     return paramsDf
@@ -35,10 +36,12 @@ a,b
 def paramsList(request):
     PARAMS_DICT = [
     {
+        "problemID": "p1",
         "a": 1,
         "b": 2
     },
     {
+        "problemID": "p2",
         "a": 3,
         "b": 4
     }
@@ -50,6 +53,7 @@ def fullTemplate(request):
     RENDERED = \
     """
 test
+p1
 1
 2
     """
@@ -60,6 +64,7 @@ def emptyTemplate(request):
     EMPTY = \
     """
 test
+
 
 
     """
@@ -122,8 +127,21 @@ def test_read_param_csv(mock_read_csv, paramsDf, paramsList):
 def test_read():
     pass
 
-def test_write_to_dir():
-    pass
+@mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
+@mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
+def test_write_to_dir(mock_read_csv, mock_get_template, env, paramsDf):
+    mock_get_template.return_value = env
+    mock_read_csv.return_value = paramsDf
+
+    m = mock.mock_open()
+    # with mock.patch('cvxbenchmarks.problem_generator.open', m, create=True):
+    with mock.patch('cvxbenchmarks.problem_generator.open', m, create=True):
+        templ = ProblemTemplate.from_file("templateName", "params", name="test_template")
+        templ.write_to_dir("problemDir")
+        m.assert_called_once_with("problemDir/p1.py", "w")
+
+    
+
 
 @mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
 @mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
