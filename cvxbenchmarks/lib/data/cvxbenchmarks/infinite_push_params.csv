@@ -1,2 +1,3 @@
-problemID, m, n, d, seed
-infinite_push_0, 100, 200, 20, 0
+# infinite_push
+id, m, n, d, seed
+0, 100, 200, 20, 0

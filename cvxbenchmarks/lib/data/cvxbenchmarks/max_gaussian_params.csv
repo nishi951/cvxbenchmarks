@@ -1,2 +1,3 @@
-problemID, m, n, k, seed
-max_gaussian_0, 10, 10, 3, 0
+# max_gaussian
+id, m, n, k, seed
+0, 10, 10, 3, 0

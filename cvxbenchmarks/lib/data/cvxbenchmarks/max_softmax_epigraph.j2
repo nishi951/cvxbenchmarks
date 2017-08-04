@@ -1,10 +1,5 @@
 {% extends "max_softmax.j2" %}
 
-{% block setup %}
-{{ super() }}
-problemID = problemID + "_epigraph"
-{% endblock %}
-
 {% block problem %}
 def one_hot(y, k):
     m = len(y)

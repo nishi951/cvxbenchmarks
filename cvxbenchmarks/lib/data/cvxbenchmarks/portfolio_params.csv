@@ -1,2 +1,3 @@
-problemID, m, n, density, seed
-portfolio_0, 500, 500000, 0.1, 0
+# portfolio
+id, m, n, density, seed
+0, 500, 50000, 0.1, 0

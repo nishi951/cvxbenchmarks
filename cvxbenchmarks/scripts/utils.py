@@ -51,7 +51,7 @@ def get_command_line_args():
     # Script-specific
     # analyze
     parser.add_argument("--results", type=str, 
-                        default="cvxbenchmarks/results.hdf",
+                        default="cvxbenchmarks/results.pkl",
                         help=("the data file to which the results data " +
                               "frame will be written."))
     parser.add_argument("--format", type=str,

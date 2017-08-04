@@ -1,10 +1,5 @@
 {% extends "chebyshev.j2" %}
 
-{% block setup %}
-{{ super() }}
-problemID = problemID + "_epigraph"
-{% endblock %}
-
 {% block problem %}
 x = cp.Variable(n)
 t = cp.Variable(k)

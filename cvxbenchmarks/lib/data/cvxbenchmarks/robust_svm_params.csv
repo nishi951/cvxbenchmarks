@@ -1,2 +1,4 @@
-problemID, m, n, mu, rho, sigma, seed
-robust_svm_0, 2000, 600, 1, 1, 0.1, 0
+# robust_svm
+id, m, n, mu, rho, sigma, seed
+0, 1000, 400, 1, 1, 0.1, 0
+1, 2000, 600, 1, 1, 0.1, 0

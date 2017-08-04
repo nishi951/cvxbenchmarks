@@ -1,10 +1,5 @@
 {% extends "max_gaussian.j2" %}
 
-{% block setup %}
-{{ super() }}
-problemID = problemID + "_epigraph"
-{% endblock %}
-
 {% block problem %}
 sigma_inv = cp.Variable(n, n) # Inverse covariance matrix
 obs = cp.vstack([-cp.log_det(sigma_inv) + cp.trace(A[i].T*A[i]*sigma_inv) for i in range(m)])

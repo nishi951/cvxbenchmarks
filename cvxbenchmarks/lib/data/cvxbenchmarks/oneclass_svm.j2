@@ -29,6 +29,6 @@ rho = cp.Variable(1)
 
 # Straightforward expression
 z = np.sum(A**2, axis=1) - 2*A*x + cp.sum_squares(x)  # z_i = ||a_i - x||^2
-f = cp.sum_entries(cp.max_elemwise(z - rho, 0)) + lam*cp.max_elemwise(0, rho)
-prob = cp.Problem(cp.Minimize(f), C)
+f = cp.sum_entries(cp.max_elemwise(z - rho, 0)) + lam*cp.sum_entries(cp.max_elemwise(0, rho))
+prob = cp.Problem(cp.Minimize(f))
 {% endblock %}

@@ -1,10 +1,5 @@
 {% extends "oneclass_svm.j2" %}
 
-{% block setup %}
-{{ super() }}
-problemID = problemID + "_epigraph"
-{% endblock %}
-
 {% block problem %}
 # Explicit epigraph form
 x = cp.Variable(n)

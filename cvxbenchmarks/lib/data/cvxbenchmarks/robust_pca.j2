@@ -16,12 +16,11 @@ S0 = sps.rand(n, n, density)
 S0.data = 10*np.random.randn(len(S0.data))
 M = L0 + S0
 lam = 0.1
-
-L = cp.Variable(n, n)
-S = cp.Variable(n, n)
 {% endblock %}
 
 {% block problem %}
+L = cp.Variable(n, n)
+S = cp.Variable(n, n)
 f = cp.norm(L, "nuc") + lam*cp.norm1(S)
 C = [L + S == M]
 

@@ -34,13 +34,14 @@ class ProblemTemplate(object):
         we want to render.
     """
     # https://pythonconquerstheuniverse.wordpress.com/2012/02/15/mutable-default-arguments/
-    def __init__(self, name="defaultTemplate", template=None, params=None):
-        self.name = name
+    def __init__(self, template=None, params=None, name="defaultTemplate",):
         self.template = template
         if params is None:
             self.params = []
         else:
             self.params = params
+        self.name = name
+        print("ProblemTemplate: {}".format(self.name))
 
     @classmethod
     def from_file(cls, templateFile, paramFile="", name="defaultTemplate"):
@@ -53,7 +54,7 @@ class ProblemTemplate(object):
         newTemplate.read(templateFile, paramFile)
         return newTemplate
 
-    def read_template(self, templateFile):
+    def read_template(self, templateFileFull):
         """Read in a template. Uses os.path.dirname and os.path.basename
         to retrieve the template name and the environment directory 
         from the templateFile argument.
@@ -68,16 +69,15 @@ class ProblemTemplate(object):
         template : jinja2.Template
             The template stored in the file in templateFile.
         """
-        templateDir = os.path.dirname(templateFile)
-        templateName = os.path.basename(templateFile)
-        self.name = templateName
+        templateDir = os.path.dirname(templateFileFull)
+        templateFile = os.path.basename(templateFileFull)
         try:
             env = Environment(loader=FileSystemLoader(templateDir))
-            self.template = env.get_template(templateName)
+            self.template = env.get_template(templateFile)
         except Exception as e:
             print(("Problem loading template {template} "
-                    "in {templateDir}. "
-                  ).format(template=templateName, templateDir=templateDir))
+                    "in {templateDir} "
+                  ).format(template=templateFile, templateDir=templateDir))
             print(e)
             self.template = None
         return
@@ -116,7 +116,9 @@ class ProblemTemplate(object):
         """
         params = []
         try:
-            paramsDf = pd.read_csv(paramFile, skipinitialspace=True)
+            paramsDf = pd.read_csv(paramFile, skipinitialspace=True,
+                                   comment='#',
+                                   dtype={"id": str})
             for _, row in paramsDf.iterrows():
                 params.append(row.to_dict())
         except Exception as e:
@@ -147,11 +149,16 @@ class ProblemTemplate(object):
         """
         try:
             for paramDict in self.params:
-                instanceID = paramDict["problemID"]
-                print(open)
+                # Add the extension from the paramDict
+                # to form the problemID
+                extension = paramDict["id"]
+                problemID = self.name + "_" + extension
+                paramDict["problemID"] = problemID # For the header
                 with open(os.path.join(problemDir, 
-                                       instanceID + ".py"), "w") as f:
+                                        problemID + ".py"), "w") as f:
                     f.write(self.template.render(paramDict))
+                    print("\tWrote: {}".format(problemID))
+
         except Exception as e:
             print("Unable to render template: {}".format(self.name))
             print(e)

@@ -58,9 +58,9 @@ def main(args):
     # results.to_pickle(resultsFile+".pkl")
 
     import warnings
-    warnings.filterwarnings('ignore',category=pandas.io.pytables.PerformanceWarning)
-    
-    results.to_hdf(resultsFile, key="results", mode="w")
+    warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
+    results.to_pickle(resultsFile)
+    # results.to_hdf(resultsFile, key="results", mode="w")
     print("saved results to {}".format(resultsFile))
 
 if __name__ == '__main__':

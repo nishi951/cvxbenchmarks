@@ -12,8 +12,8 @@ from cvxbenchmarks.scripts.utils import get_command_line_args
 def main(args):
     # Load results.dat
     print("Loading results from {}...".format(args.results))
-    # results = pd.read_pickle(args.results)
-    results = pd.read_hdf(args.results)
+    results = pd.read_pickle(args.results)
+    # results = pd.read_hdf(args.results)
     print(results.to_frame(filter_observations = False))
     print("Done.")
 

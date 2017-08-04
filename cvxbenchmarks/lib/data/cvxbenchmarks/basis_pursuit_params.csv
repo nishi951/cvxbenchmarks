@@ -1,4 +1,6 @@
-problemID, m, n, seed
-basis_pursuit_0, 100, 300, 0
-basis_pursuit_1, 200, 400, 0
-basis_pursuit_2, 300, 500, 0
+# basis_pursuit
+id, m, n, seed
+0, 100, 300, 0
+1, 200, 400, 0
+2, 300, 500, 0
+3, 400, 700, 0

@@ -1,2 +1,3 @@
-problemID, m, n, seed
-least_abs_dev_0, 5000, 200, 0
+# least_abs_dev
+id, m, n, seed
+0, 5000, 200, 0

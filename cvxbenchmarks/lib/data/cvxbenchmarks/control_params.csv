@@ -1,4 +1,5 @@
-problemID, m, n, T, seed
-control_0, 2, 8, 50, 1
-control_1, 4, 20, 50, 1
-control_2, 4, 10, 50, 1
+# control
+id, m, n, T, seed
+0, 2, 8, 50, 1
+1, 4, 20, 50, 1
+2, 4, 10, 50, 1

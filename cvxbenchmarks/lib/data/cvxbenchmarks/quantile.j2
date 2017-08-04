@@ -17,12 +17,10 @@ alphas = np.linspace(1./(k+1), 1-1./(k+1), k)
 mu_rbf = np.array([np.linspace(-1, 2*np.pi*p+1, n)])
 mu_sig = (2*np.pi*p+2)/n
 X = np.exp(-(mu_rbf.T - x).T**2/(2*mu_sig**2))
-
-Theta = cp.Variable(n,k)
 {% endblock %}
 
 {% block problem %}
-# Other probabilistic models
+Theta = cp.Variable(n,k)
 def quantile_loss(alphas, Theta, X, y):
     m, n = X.shape
     k = len(alphas)
@@ -35,6 +33,6 @@ def quantile_loss(alphas, Theta, X, y):
             cp.mul_elemwise(1-A, Z)))
 
 f = quantile_loss(alphas, Theta, X, y)
-C = [X*(Theta[:,:-1] - Theta[:,1:]) >= 0]
+C = [X*(Theta[:,1:] - Theta[:,:-1]) >= 0]
 prob = cp.Problem(cp.Minimize(f), C)
 {% endblock %}

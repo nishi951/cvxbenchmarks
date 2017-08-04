@@ -1,4 +1,8 @@
-problemID, n, m, seed
-least_squares_0, 100, 100, 1
-least_squares_1, 20, 30, 1
-least_squares_2, 200, 300, 1
+# least_squares
+id, m, n, seed
+0, 30, 20 1
+1, 100, 50, 1
+2, 500, 100, 1
+3, 1000, 200, 1
+4, 5000, 400, 1
+5, 10000, 1000, 1

@@ -57,11 +57,12 @@ def worker(problemDir, configDir, work_queue, done_queue):
             print("Exiting worker process.")
             done_queue.put(STOP)
             break
-        testproblem = TestProblem.from_file(problemID, problemDir)
+        testproblemList = TestProblem.get_all_from_file(problemID, problemDir)
         config = SolverConfiguration.from_file(configID, configDir)
-        test_instance = TestInstance(testproblem, config)
-        result = test_instance.run()
-        done_queue.put(result)
+        for testproblem in testproblemList:
+            test_instance = TestInstance(testproblem, config)
+            result = test_instance.run()
+            done_queue.put(result)
     return 
 
 
@@ -155,7 +156,7 @@ class TestFramework(object):
             containing the problem should be in the format <fileID>.py.
             <fileID>.py can also contain a list of problems.
         """
-        self.problems.extend(TestProblem.from_file(fileID, self.problemDir))
+        self.problems.extend(TestProblem.get_all_from_file(fileID, self.problemDir))
 
     def preload_all_problems(self):
         """Loads all the problems in self.problemDir and adds them to 
@@ -238,7 +239,7 @@ class TestFramework(object):
                         # Retrieve TestResult from the results dictionary:
                         self._results.append(cachedResults[instancehash])
                         print(("Retrieved instance result ({}, {}) " +
-                               "from cache.").format(instance.problem.id,
+                               "from cache.").format(instance.testproblem.id,
                                                      instance.config.id))
                     else:
                         # Add this result to the cache
@@ -472,7 +473,7 @@ class TestProblem(object):
         self.tags = TestProblem.check_cone_types(problem)
 
     @classmethod
-    def from_file(cls, fileID, problemDir):
+    def get_all_from_file(cls, fileID, problemDir):
         """Loads a file with name <fileID>.py and returns a list of
         testproblem objects, one for each problem found in the file.
 

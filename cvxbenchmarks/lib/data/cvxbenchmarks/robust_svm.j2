@@ -1,5 +1,5 @@
 {% extends "utils/problem.j2" %}
-{% import "utils/helpers.j2" %}
+{% import "utils/helpers.j2" as helpers %}
 
 {% block vars %}
 import scipy.sparse as sps
@@ -26,20 +26,12 @@ A[b<0,:] -= 0.7*np.tile([x0], (np.sum(b<0),1))
 P = la.block_diag(np.random.randn(n-1,n-1), 0)
 
 lam = 1
-x = cp.Variable(A.shape[1])
-
-# Straightforward formulation w/ no constraints
-# TODO(mwytock): Fix compiler so this works
-z0 = 1 - sps.diags([b],[0])*A*x + cp.norm1(P.T*x)
-f_eval = lambda: (lam*cp.sum_squares(x) + cp.sum_entries(cp.max_elemwise(z0, 0))).value
-
-# Explicit epigraph constraint
-t = cp.Variable(1)
 {% endblock %}
 
 {% block problem %}
-z = 1 - sps.diags([b],[0])*A*x + t
+# Unconstrained formulation
+x = cp.Variable(n)
+z = 1 - sps.diags([b],[0])*A*x + cp.norm1(P.T*x) 
 f = lam*cp.sum_squares(x) + cp.sum_entries(cp.max_elemwise(z, 0))
-C = [cp.norm1(P.T*x) <= t]
-prob = cp.Problem(cp.Minimize(f), C)
+prob = cp.Problem(cp.Minimize(f))
 {% endblock %}

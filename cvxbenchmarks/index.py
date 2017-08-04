@@ -27,7 +27,7 @@ class Index(object):
         #         os.path.join(
         #             os.path.split(
         #                 inspect.getfile(inspect.currentframe()))[0], problemDir)))
-        problemDir=os.path.realpath(os.path.abspath(problemDir))
+        problemDir = os.path.realpath(os.path.abspath(problemDir))
         if problemDir not in sys.path:
             sys.path.insert(0, problemDir)
         print("Index: reading from {}".format(problemDir))
