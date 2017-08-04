@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'CVXBenchmarks',
+    name = 'cvxbenchmarks',
     version = '0.0.1',
     description = 'A testing framework for convex solvers.',
     author = 'Mark Nishimura, Steven Diamond, Stephen Boyd',
@@ -17,8 +17,7 @@ setup(
                         'tabulate >= 0.7.5',
                         'Jinja2 >= 2.9.6',
                         'matplotlib >= 2.0.2',
-                        'multiprocess >= 0.70.5',
-                        'tables >= 3.2.0'
+                        'multiprocess >= 0.70.5'
                         ],
     entry_points = {
         'console_scripts': ['cvxbench=cvxbenchmarks.command_line:main']
