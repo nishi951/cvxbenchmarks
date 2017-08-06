@@ -14,13 +14,14 @@ def main(args):
     print("Loading results from {}...".format(args.results))
     results = pd.read_pickle(args.results)
     # results = pd.read_hdf(args.results)
-    print(results.to_frame(filter_observations = False))
+    print(results.to_frame(filter_observations = False).to_string())
     print("Done.")
 
     # Data Visualization
     # Generate performance profiles for all solver configurations
     # Graph performance profile:
     import matplotlib.pyplot as plt
+
     plt.figure()
     dv.plot_performance_profile(results)
     plt.draw()
@@ -52,9 +53,9 @@ def main(args):
     plt.draw()
 
     # Graph histogram of solve accuracies (relative to mosek)
-    plt.figure()
-    dv.plot_histograms_by_config(results)
-    plt.draw()
+    # plt.figure()
+    # dv.plot_histograms_by_config(results)
+    # plt.draw()
 
     # Show figures
     # plt.show()

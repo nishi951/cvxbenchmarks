@@ -1,4 +1,4 @@
-# SDP #2
+# Logistic Regression
 
 # https://kul-forbes.github.io/scs/page_benchmarks.html
 
@@ -9,24 +9,36 @@ import cvxpy as cp
 import scipy as sp
 
 import scipy.sparse as sps
-import scipy.linalg as la
 
 np.random.seed(1)
+density = 0.1
+p = 1000   # features
+q = 10*p  # total samples
 
-n = 100
-A = np.diag(-np.logspace(-0.5, 1, n))
-U = la.orth(np.random.randn(n,n))
-A = U.T.dot(A.dot(U))
+def sprandn(m, n, density):
+    A = sps.rand(m, n, density)
+    A.data = np.random.randn(A.nnz)
+    return A
 
-P = cp.Symmetric(n, n)
-f = cp.trace(P)
-C = [A.T*P + P*A << np.eye(n),
-     P >> np.eye(n)]
+w_true = sprandn(p, 1, density)
+X_tmp = sprandn(p, q, density)
 
-prob = cp.Problem(cp.Minimize(f), C)
+ips = -w_true.T.dot(X_tmp)
+ps = (exp(ips)./(1 + exp(ips))).T
+labels = 2*(np.random.rand(q,1) < ps) - 1
+X_pos = X_tmp(:,labels==1)
+X_neg = X_tmp(:,labels==-1)
+X = [X_pos -X_neg] # include labels with data
+lam = 2
+
+
+w = cp.Variable(p, 1)
+f = cp.sum_entries(cp.log_sum_exp(np.vstack([np.zeros((1,q)), w.T*X]), axis = 0)) + lam * norm(w,1))
+
+prob = cp.Problem(cp.Minimize(f))
 
 problemDict = {
-    "problemID": "trace",
+    "problemID": "log_reg",
     "problem": prob,
     "opt_val": None
 }
@@ -42,4 +54,3 @@ if __name__ == "__main__":
         print("\toptimal value: {}".format(problem.value))
         print("\ttrue optimal value: {}".format(opt_val))
     printResults(**problems[0])
-

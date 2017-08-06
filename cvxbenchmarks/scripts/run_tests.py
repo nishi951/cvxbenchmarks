@@ -59,7 +59,7 @@ def main(args):
 
     import warnings
     warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
-    results.to_pickle(resultsFile)
+    results.to_pickle(resultsFile, protocol = 2) # Backwards compatibility with python 2
     # results.to_hdf(resultsFile, key="results", mode="w")
     print("saved results to {}".format(resultsFile))
 

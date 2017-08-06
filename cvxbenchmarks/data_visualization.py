@@ -6,7 +6,7 @@ import numpy as np
 
 # Just provide functions for now (no OOP)
 
-def plot_performance_profile(results, rel_max = 10e10):
+def plot_performance_profile(results, rel_max = 10e10, xmin=1, xmax=100):
     """Type: step plot
     x-axis : tau
     y-axis : performance 
@@ -41,7 +41,7 @@ def plot_performance_profile(results, rel_max = 10e10):
         plt.step(x, y, label = config, linestyle = 'steps-post')
 
     plt.legend(loc = 'lower right')
-    plt.xlim(1, 100)
+    plt.xlim(xmin, xmax)
 
     # Labels and things
     plt.title("Performance profiles for solve time")

@@ -1,4 +1,4 @@
-# SDP #1
+# Regularized Matrix Completion
 
 # https://kul-forbes.github.io/scs/page_benchmarks.html
 
@@ -12,24 +12,37 @@ import scipy.sparse as sps
 
 np.random.seed(1)
 
-n = 800
-P = np.random.randn(n, n)
-Z = cp.Semidef(n, n)
-f = cp.norm(P - Z, "fro")
-# Toeplitz condition: all diagonals are equal
+
+def sprandn(m, n, density):
+    A = sps.rand(m, n, density)
+    A.data = np.random.randn(A.nnz)
+    return A
+
+m=200
+n=200
+n_nan = int(np.ceil(0.8*m*n))
+M = sprandn(m, n, 0.4).todense()
+idx = np.random.permutation(m*n)
+M = M.flatten()
+M[:,idx[:n_nan]] = np.nan
+M = M.reshape((m, n))
+lam = 0.5
+X = cp.Variable(m, n)
+f = cp.norm(X, "nuc") + lam*cp.sum_squares(X)
 C = []
-for i in range(n):
-    for j in range(i+1):
-        C += [Z[i,j] == Z[(i+1) % n, ((j+1) % n)]]
+for i in range(m):
+    for j in range(n):
+        if np.isnan(M[i, j]):
+            C += [X[i, j] == M[i, j]]
 
 prob = cp.Problem(cp.Minimize(f), C)
 
-# Single problem collection
 problemDict = {
-    "problemID" : "sdp",
-    "problem"   : prob,
-    "opt_val"   : None
+    "problemID": "mat_comp",
+    "problem": prob,
+    "opt_val": None
 }
+
 problems = [problemDict]
 
 # For debugging individual problems:
@@ -41,3 +54,5 @@ if __name__ == "__main__":
         print("\toptimal value: {}".format(problem.value))
         print("\ttrue optimal value: {}".format(opt_val))
     printResults(**problems[0])
+
+

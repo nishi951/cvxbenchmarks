@@ -33,9 +33,19 @@ x = cp.Variable(n)
 prob = cp.Problem(cp.Minimize(0.5*cp.sum_squares(A*x) + mu*cp.norm1(x)))
 
 problemDict = {
-    "problemID": "lasso_type_0",
+    "problemID": "lasso_type",
     "problem": prob,
     "opt_val": None
 }
 
 problems = [problemDict]
+
+# For debugging individual problems:
+if __name__ == "__main__":
+    def printResults(problemID = "", problem = None, opt_val = None):
+        print(problemID)
+        problem.solve()
+        print("\tstatus: {}".format(problem.status))
+        print("\toptimal value: {}".format(problem.value))
+        print("\ttrue optimal value: {}".format(opt_val))
+    printResults(**problems[0])

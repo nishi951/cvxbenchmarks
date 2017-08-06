@@ -1,4 +1,4 @@
-# SDP #1
+# Minimization of P-norm
 
 # https://kul-forbes.github.io/scs/page_benchmarks.html
 
@@ -10,26 +10,32 @@ import scipy as sp
 
 import scipy.sparse as sps
 
+
 np.random.seed(1)
 
-n = 800
-P = np.random.randn(n, n)
-Z = cp.Semidef(n, n)
-f = cp.norm(P - Z, "fro")
-# Toeplitz condition: all diagonals are equal
-C = []
-for i in range(n):
-    for j in range(i+1):
-        C += [Z[i,j] == Z[(i+1) % n, ((j+1) % n)]]
+n = 2000
+m = n//4
+density = 0.1
 
+def sprandn(m, n, density):
+    A = sps.rand(m, n, density)
+    A.data = np.random.randn(A.nnz)
+    return A.todense()
+
+G = sprandn(m,n,density);
+f = np.random.randn(m,1) * n * density
+power = 1.5
+x = cp.Variable(n)
+f = cp.norm(x, power)
+C = [G*x == f]
 prob = cp.Problem(cp.Minimize(f), C)
 
-# Single problem collection
 problemDict = {
-    "problemID" : "sdp",
-    "problem"   : prob,
-    "opt_val"   : None
+    "problemID": "pnorm",
+    "problem": prob,
+    "opt_val": None
 }
+
 problems = [problemDict]
 
 # For debugging individual problems:

@@ -1,4 +1,4 @@
-# SDP #1
+# Norm-constrained Minimum-norm
 
 # https://kul-forbes.github.io/scs/page_benchmarks.html
 
@@ -12,21 +12,27 @@ import scipy.sparse as sps
 
 np.random.seed(1)
 
-n = 800
-P = np.random.randn(n, n)
-Z = cp.Semidef(n, n)
-f = cp.norm(P - Z, "fro")
-# Toeplitz condition: all diagonals are equal
-C = []
-for i in range(n):
-    for j in range(i+1):
-        C += [Z[i,j] == Z[(i+1) % n, ((j+1) % n)]]
+def sprandn(m, n, density):
+    A = sps.rand(m, n, density)
+    A.data = np.random.randn(A.nnz)
+    return A
+
+m = 3000
+n = m//2
+A = sprandn(m,n,0.5);
+b = 10*np.random.randn(m,1);
+G = 2*sprandn(2*n, n, 0.1);
+
+x = cp.Variable(n)
+f = cp.norm(A*x - b)
+C = [cp.norm(G*x) <= 1]
+
 
 prob = cp.Problem(cp.Minimize(f), C)
 
 # Single problem collection
 problemDict = {
-    "problemID" : "sdp",
+    "problemID" : "min_norm",
     "problem"   : prob,
     "opt_val"   : None
 }

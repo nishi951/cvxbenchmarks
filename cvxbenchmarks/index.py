@@ -58,7 +58,7 @@ class Index(object):
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     problemID = filename[0:-3]
                     print("\t{}".format(problemID))
-                    problems = TestProblem.from_file(problemID, problemDir)
+                    problems = TestProblem.get_all_from_file(problemID, problemDir)
                     for testproblem in problems:
                         next = pd.Series(testproblem.problem.size_metrics.__dict__, name = problemID)
                         # Add cone types
@@ -84,7 +84,8 @@ class Index(object):
     def write_latex(self,
                     keys = ("num_scalar_variables",
                             "num_scalar_eq_constr",
-                            "num_scalar_leq_constr"),
+                            "num_scalar_leq_constr",
+                            "tags"),
                     filename = "index.tex"):
         """Writes a latex tabular snippet suitable for posting in a latex document.
 
