@@ -14,6 +14,7 @@ def main(args):
     problems = args.problems
     parallel = args.parallel
     resultsFile = args.results
+    use_cache = args.no_cache
 
 
     framework = TestFramework(problemDir = problemDir, configDir = configDir)
@@ -37,9 +38,9 @@ def main(args):
     start = time.time()
     print("Solving all problem instances...")
     if parallel:
-        framework.solve_all_parallel()
+        framework.solve_all_parallel(use_cache)
     else:
-        framework.solve_all()
+        framework.solve_all(use_cache)
     print("\tDone.")
 
 
@@ -59,7 +60,7 @@ def main(args):
 
     import warnings
     warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
-    results.to_pickle(resultsFile, protocol = 2) # Backwards compatibility with python 2
+    results.to_pickle(resultsFile)
     # results.to_hdf(resultsFile, key="results", mode="w")
     print("saved results to {}".format(resultsFile))
 

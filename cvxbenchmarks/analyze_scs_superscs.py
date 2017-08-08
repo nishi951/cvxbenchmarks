@@ -48,14 +48,20 @@ results_mixed = results.loc[:, scs_inacc_superscs_opt,:]
 
 
 
-for results in [results_opt, results_inacc, results_mixed]:
+for i, results in enumerate([results_opt, results_inacc, results_mixed]):
+    # Latex:
+    if i == 0:
+        with open("opt_time_table.tex", "w") as f:
+            f.write(results.loc["solve_time", :, ["superscs_config", "scs_config"]].to_latex())
+
+
     # Plots
     # Performance Profiles
     plt.figure()
     dv.plot_performance_profile(results, xmax=30)
     # dv.plot_performance_profile(results.loc[:,:,["superscs_config", "scs_config"]], xmax=30)
     plt.draw()
-    
+
     # Graph time vs. number of scalar variables
     plt.figure()
     dv.plot_scatter_by_config(results, "num_scalar_variables", "solve_time", logx = True, logy = True)

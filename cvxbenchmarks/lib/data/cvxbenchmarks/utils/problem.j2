@@ -42,7 +42,8 @@ if __name__ == "__main__":
         print("\tstatus: {}".format(problem.status))
         print("\toptimal value: {}".format(problem.value))
         print("\ttrue optimal value: {}".format(opt_val))
-    printResults(**problems[0])
+    for problemDict in problems:
+        printResults(**problemDict)
 {% endblock run %}
 
 {% endblock problemFile %}

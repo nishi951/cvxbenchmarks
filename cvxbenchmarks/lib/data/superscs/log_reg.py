@@ -20,20 +20,20 @@ def sprandn(m, n, density):
     A.data = np.random.randn(A.nnz)
     return A
 
-w_true = sprandn(p, 1, density)
-X_tmp = sprandn(p, q, density)
+w_true = sprandn(p, 1, density).todense()
+X_tmp = sprandn(p, q, density).todense()
 
 ips = -w_true.T.dot(X_tmp)
-ps = (exp(ips)./(1 + exp(ips))).T
+ps = (np.exp(ips)/(1 + np.exp(ips))).T
 labels = 2*(np.random.rand(q,1) < ps) - 1
-X_pos = X_tmp(:,labels==1)
-X_neg = X_tmp(:,labels==-1)
-X = [X_pos -X_neg] # include labels with data
+X_pos = X_tmp[:,np.where(labels==1)[0]]
+X_neg = X_tmp[:,np.where(labels==-1)[0]]
+X = np.hstack([X_pos, -X_neg]) # include labels with data
 lam = 2
 
 
 w = cp.Variable(p, 1)
-f = cp.sum_entries(cp.log_sum_exp(np.vstack([np.zeros((1,q)), w.T*X]), axis = 0)) + lam * norm(w,1))
+f = cp.sum_entries(cp.log_sum_exp(cp.vstack([np.zeros((1,q)), w.T*X]), axis = 0)) + lam * cp.norm(w,1)
 
 prob = cp.Problem(cp.Minimize(f))
 

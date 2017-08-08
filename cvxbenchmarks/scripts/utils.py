@@ -79,7 +79,7 @@ def get_command_line_args():
 
     # run
     # --problemDir
-    parser.add_argument("--no-cache", action='store_true',
+    parser.add_argument("--no-cache", action='store_false',
                         help="disable cache use during run.") # Double negatives...
     parser.add_argument("--clear-cache", action='store_true',
                         help="clear the problem results cache.")

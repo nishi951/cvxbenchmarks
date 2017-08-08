@@ -17,6 +17,11 @@ def main(args):
     print(results.to_frame(filter_observations = False).to_string())
     print("Done.")
 
+    # Save solve time latex
+    with open("time_table.tex", "w") as f:
+        f.write(results.loc["solve_time", :, ["superscs_config", "scs_config"]].to_latex())
+
+
     # Data Visualization
     # Generate performance profiles for all solver configurations
     # Graph performance profile:
@@ -104,22 +109,23 @@ def main(args):
 
     # Calculate aggregate statistics:
     # Average error:
-    avg_errors = pd.Series(index = results.minor_axis)
-    for config in results.minor_axis:
-        total_error = 0
-        num_not_null = 0.0
-        for problem in results.major_axis:
-            if pd.notnull(results.loc["error", problem, config]) and \
-              results.loc["status", problem, config] == "optimal":
-                num_not_null += 1
-                total_error += results.loc["error", problem, config]
-        if num_not_null > 0:
-            avg_errors.loc[config] = total_error / num_not_null
-        else:
-            avg_errors.loc[config] = None
+    if "error" in results.items:
+        avg_errors = pd.Series(index = results.minor_axis)
+        for config in results.minor_axis:
+            total_error = 0
+            num_not_null = 0.0
+            for problem in results.major_axis:
+                if pd.notnull(results.loc["error", problem, config]) and \
+                  results.loc["status", problem, config] == "optimal":
+                    num_not_null += 1
+                    total_error += results.loc["error", problem, config]
+            if num_not_null > 0:
+                avg_errors.loc[config] = total_error / num_not_null
+            else:
+                avg_errors.loc[config] = None
 
-    print("Average errors:")
-    print(avg_errors)
+        print("Average errors:")
+        print(avg_errors)
 
     # Relative performance:
     # For each pair of configs:

@@ -18,8 +18,8 @@ def sprandn(m, n, density):
     A.data = np.random.randn(A.nnz)
     return A
 
-m=200
-n=200
+m = 200
+n = 200
 n_nan = int(np.ceil(0.8*m*n))
 M = sprandn(m, n, 0.4).todense()
 idx = np.random.permutation(m*n)
@@ -28,12 +28,17 @@ M[:,idx[:n_nan]] = np.nan
 M = M.reshape((m, n))
 lam = 0.5
 X = cp.Variable(m, n)
-f = cp.norm(X, "nuc") + lam*cp.sum_squares(X)
 C = []
 for i in range(m):
     for j in range(n):
-        if np.isnan(M[i, j]):
+        if not np.isnan(M[i, j]):
             C += [X[i, j] == M[i, j]]
+
+# Replace NaN's with zeros:
+M[np.isnan(M)] = 0
+
+f = cp.norm(X - M, "nuc") + lam*cp.sum_squares(X)
+
 
 prob = cp.Problem(cp.Minimize(f), C)
 

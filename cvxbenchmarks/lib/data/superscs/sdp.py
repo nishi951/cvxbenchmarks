@@ -18,9 +18,11 @@ Z = cp.Semidef(n, n)
 f = cp.norm(P - Z, "fro")
 # Toeplitz condition: all diagonals are equal
 C = []
-for i in range(n):
-    for j in range(i+1):
-        C += [Z[i,j] == Z[(i+1) % n, ((j+1) % n)]]
+# can ignore nth diagonal and -nth diagonal, since those are
+# single elements anyway.
+for offset in range(n-1): 
+    C += [cp.diff(cp.diag(Z[offset:, :(n-offset)])) == 0,
+          cp.diff(cp.diag(Z[:(n-offset), offset:])) == 0]
 
 prob = cp.Problem(cp.Minimize(f), C)
 
@@ -36,7 +38,7 @@ problems = [problemDict]
 if __name__ == "__main__":
     def printResults(problemID = "", problem = None, opt_val = None):
         print(problemID)
-        problem.solve()
+        problem.solve(solver="SUPERSCS")
         print("\tstatus: {}".format(problem.status))
         print("\toptimal value: {}".format(problem.value))
         print("\ttrue optimal value: {}".format(opt_val))

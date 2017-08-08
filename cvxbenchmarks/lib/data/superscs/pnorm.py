@@ -26,9 +26,9 @@ G = sprandn(m,n,density);
 f = np.random.randn(m,1) * n * density
 power = 1.5
 x = cp.Variable(n)
-f = cp.norm(x, power)
+obj = cp.norm(x, power)
 C = [G*x == f]
-prob = cp.Problem(cp.Minimize(f), C)
+prob = cp.Problem(cp.Minimize(obj), C)
 
 problemDict = {
     "problemID": "pnorm",

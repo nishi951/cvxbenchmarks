@@ -12,16 +12,23 @@ import scipy.sparse as sps
 
 
 # Variable declarations
+np.random.seed(1)
+
 n = 10000
 m = 2000
-np.seed(1)
-s = np.ceil(n/10)
-x_true = np.hstack((np.random.randn(s, 1), np.zeros(n-s, 1)))
+s = n//10
+x_true = np.vstack([np.random.randn(s, 1), np.zeros((n-s, 1))])
 x_true = np.random.permutation(x_true)
 
 density = 0.1
 rcA = 0.1
-A = sps.random(m, n, density, data_rvs = np.random.randn)
+
+def sprandn(m, n, density):
+    A = sps.rand(m, n, density)
+    A.data = np.random.randn(A.nnz)
+    return A
+
+A = sprandn(m, n, density).todense()
 
 b = A*x_true + 0.1*np.random.randn(m, 1)
 mu = 1
