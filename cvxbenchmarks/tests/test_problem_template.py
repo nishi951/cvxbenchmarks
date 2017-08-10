@@ -24,7 +24,7 @@ test
 
 @pytest.fixture
 def paramsDf(request):
-    PARAMS = """\
+    PARAMS = u"""\
 id,a,b
 p1,1,2
 p2,3,4
@@ -54,7 +54,7 @@ def paramsList(request):
 @pytest.fixture
 def fullTemplate1(request):
     RENDERED = \
-    """
+    u"""
 test
 test_problem_p1
 1
@@ -65,7 +65,7 @@ test_problem_p1
 @pytest.fixture
 def fullTemplate2(request):
     RENDERED = \
-    """
+    u"""
 test
 test_problem_p2
 3
@@ -76,7 +76,7 @@ test_problem_p2
 @pytest.fixture
 def emptyTemplate(request):
     EMPTY = \
-    """
+    u"""
 test
 
 
