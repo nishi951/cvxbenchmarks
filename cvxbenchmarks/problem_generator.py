@@ -90,12 +90,13 @@ class ProblemTemplate(object):
         paramFile : string
             The filepath to the (.csv) file containing the parameters
             in csv format. 
+
             e.g.
             ----
-            problemID, m, n, seed
-            basis_pursuit_0, 100, 300, 0
-            basis_pursuit_1, 200, 400, 0
-            basis_pursuit_2, 300, 500, 0
+            id, m, n, seed
+            0, 100, 300, 0
+            1, 200, 400, 0
+            2, 300, 500, 0
             ----
 
         Returns
@@ -103,13 +104,14 @@ class ProblemTemplate(object):
         params : list of dict
             The list contains one dictionary per instance of template 
             to generate.
-            e.g. The above example would generate
+            e.g. The above example, if self.name == "basis_pursuit", would generate
             [
                 {
                     "problemID": "basis_pursuit_0",
                     "m": 100,
                     "n": 300,
                     "seed": 0
+                    "id": 0
                 },
                 ...
             ]
@@ -119,8 +121,13 @@ class ProblemTemplate(object):
             paramsDf = pd.read_csv(paramFile, skipinitialspace=True,
                                    comment='#',
                                    dtype={"id": str})
-            for _, row in paramsDf.iterrows():
-                params.append(row.to_dict())
+            params = [row.to_dict() for _, row in paramsDf.iterrows()]
+            for paramDict in params:
+                # Add the extension from the paramDict
+                # to form the problemID
+                extension = paramDict["id"]
+                problemID = self.name + "_" + extension
+                paramDict["problemID"] = problemID # For the header
         except Exception as e:
             print(("Problem loading parameters in {}. "
                    "Check parameter file path."
@@ -149,11 +156,7 @@ class ProblemTemplate(object):
         """
         try:
             for paramDict in self.params:
-                # Add the extension from the paramDict
-                # to form the problemID
-                extension = paramDict["id"]
-                problemID = self.name + "_" + extension
-                paramDict["problemID"] = problemID # For the header
+                problemID = paramDict["problemID"]
                 with open(os.path.join(problemDir, 
                                         problemID + ".py"), "w") as f:
                     f.write(self.template.render(paramDict))

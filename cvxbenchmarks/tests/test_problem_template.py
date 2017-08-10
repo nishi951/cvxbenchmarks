@@ -1,5 +1,5 @@
 import pytest
-import mock
+from mock import patch, call, mock_open
 
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
@@ -9,7 +9,7 @@ from cvxbenchmarks.problem_generator import ProblemTemplate
 
 
 @pytest.fixture
-def env(request):
+def template(request):
     TEMPLATE = \
     """
 test
@@ -25,7 +25,7 @@ test
 @pytest.fixture
 def paramsDf(request):
     PARAMS = """\
-problemID,a,b
+id,a,b
 p1,1,2
 p2,3,4
 #p3,5,6
@@ -37,26 +37,39 @@ p2,3,4
 def paramsList(request):
     PARAMS_DICT = [
     {
-        "problemID": "p1",
+        "problemID": "test_problem_p1",
         "a": 1,
-        "b": 2
+        "b": 2,
+        "id": "p1"
     },
     {
-        "problemID": "p2",
+        "problemID": "test_problem_p2",
         "a": 3,
-        "b": 4
+        "b": 4,
+        "id": "p2"
     }
     ]
     return PARAMS_DICT
 
 @pytest.fixture
-def fullTemplate(request):
+def fullTemplate1(request):
     RENDERED = \
     """
 test
-p1
+test_problem_p1
 1
 2
+    """
+    return RENDERED
+
+@pytest.fixture
+def fullTemplate2(request):
+    RENDERED = \
+    """
+test
+test_problem_p2
+3
+4
     """
     return RENDERED
 
@@ -88,31 +101,37 @@ def test_init():
     assert temp2.params == "params"
     return
 
-@mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
-@mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
-def test_from_file(mock_read_csv, mock_get_template, paramsDf, env, paramsList):
+@patch('cvxbenchmarks.problem_generator.Environment.get_template')
+@patch('cvxbenchmarks.problem_generator.pd.read_csv')
+def test_from_file(mock_read_csv, mock_get_template, paramsDf, template, paramsList):
     # Set up mock return values with fixtures.
-    mock_get_template.return_value = env
+    mock_get_template.return_value = template
     mock_read_csv.return_value = paramsDf
 
-    newTemplate = ProblemTemplate.from_file("templateName", "params", name="test_template")
-    assert newTemplate.name == "test_template"
-    assert newTemplate.template == env
-    assert newTemplate.params == paramsList
+    templ = ProblemTemplate.from_file("templateName", "params", name="test_problem")
+    assert templ.name == "test_problem"
+    assert templ.template == template
+    assert templ.params == paramsList
     return
 
-@mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
-def test_read_template(mock_get_template):
+@patch('cvxbenchmarks.problem_generator.Environment.get_template')
+def test_read_template(mock_get_template, template):
+    mock_get_template.return_value = template
+
+    templ = ProblemTemplate(template = "template")
+    templ.read_template("someDir/templ")
+    assert templ.template == template
+
     mock_get_template.side_effect = Exception()
     templ = ProblemTemplate(template="template")
     templ.read_template("someDir/othertempl")
     assert templ.template == None
     return
 
-@mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
+@patch('cvxbenchmarks.problem_generator.pd.read_csv')
 def test_read_param_csv(mock_read_csv, paramsDf, paramsList):
     mock_read_csv.return_value = paramsDf
-    templ = ProblemTemplate("templateFile", "paramFile")
+    templ = ProblemTemplate("templateFile", "paramFile", "test_problem")
     templ.read_param_csv("paramFile", overwrite=True)
     assert templ.params == paramsList
 
@@ -125,36 +144,57 @@ def test_read_param_csv(mock_read_csv, paramsDf, paramsList):
     assert templ.params == []
     return
 
-@mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
-@mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
-def test_read(mock_get_template, mock_read_csv, env, paramsDf, paramsList):
-    
-
-@mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
-@mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
-def test_write_to_dir(mock_read_csv, mock_get_template, env, paramsDf):
-    mock_get_template.return_value = env
+@patch('cvxbenchmarks.problem_generator.pd.read_csv')
+@patch('cvxbenchmarks.problem_generator.Environment.get_template')
+def test_read(mock_get_template, mock_read_csv, template, paramsDf, paramsList):
+    mock_get_template.return_value = template
     mock_read_csv.return_value = paramsDf
 
-    m = mock.mock_open()
-    # with mock.patch('cvxbenchmarks.problem_generator.open', m, create=True):
-    with mock.patch('cvxbenchmarks.problem_generator.open', m, create=True):
-        templ = ProblemTemplate.from_file("templateName", "params", name="test_template")
+    templ = ProblemTemplate("template", "params", "test_problem")
+    templ.read("templatefile", "paramfile", True)
+    assert templ.params == paramsList
+    assert templ.template == template
+
+    templ.read("templatefile", "paramfile", False)
+    assert templ.params == paramsList + paramsList
+    assert templ.template == template
+    
+
+@patch('cvxbenchmarks.problem_generator.Environment.get_template')
+@patch('cvxbenchmarks.problem_generator.pd.read_csv')
+def test_write_to_dir(mock_read_csv, mock_get_template, template, paramsDf, fullTemplate1, fullTemplate2):
+    mock_get_template.return_value = template
+    mock_read_csv.return_value = paramsDf
+
+    m = mock_open()
+    # with patch('cvxbenchmarks.problem_generator.open', m, create=True):
+    with patch('cvxbenchmarks.problem_generator.open', m, create=True):
+        templ = ProblemTemplate.from_file("templateName", "params", name="test_problem")
         templ.write_to_dir("problemDir")
-        # m.assert_called_once_with("problemDir/p1.py", "w")
+        expected_calls = [
+            call("problemDir/test_problem_p1.py", "w"),
+            call().__enter__(),
+            call().write(fullTemplate1),
+            call().__exit__(None, None, None),
+            call("problemDir/test_problem_p2.py", "w"),
+            call().__enter__(),
+            call().write(fullTemplate2),
+            call().__exit__(None, None, None)
+        ]
+        assert expected_calls == m.mock_calls
 
     
 
 
-@mock.patch('cvxbenchmarks.problem_generator.Environment.get_template')
-@mock.patch('cvxbenchmarks.problem_generator.pd.read_csv')
-def test_str(mock_read_csv, mock_get_template, fullTemplate, emptyTemplate, paramsDf, env):
-    mock_get_template.return_value = env
+@patch('cvxbenchmarks.problem_generator.Environment.get_template')
+@patch('cvxbenchmarks.problem_generator.pd.read_csv')
+def test_str(mock_read_csv, mock_get_template, fullTemplate1, emptyTemplate, paramsDf, template):
+    mock_get_template.return_value = template
     mock_read_csv.return_value = paramsDf
-    newTemplate = ProblemTemplate.from_file("templateName", "params", name="test_template")
-    assert str(newTemplate) == fullTemplate
+    newTemplate = ProblemTemplate.from_file("templateName", "params", name="test_problem")
+    assert str(newTemplate) == fullTemplate1
 
     mock_read_csv.return_value = []
-    newnewTemplate = ProblemTemplate.from_file("templateName2", "params2", name="test_template2")
+    newnewTemplate = ProblemTemplate.from_file("templateName2", "params2", name="test_problem")
     assert str(newnewTemplate) == emptyTemplate
     return
