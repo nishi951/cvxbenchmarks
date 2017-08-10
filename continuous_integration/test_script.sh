@@ -1,2 +1,6 @@
 #!/usr/bin/env bash
-py.test
+if [[ $COVERAGE == "true" ]]; then
+    py.test -cov .
+else
+    py.test
+fi
