@@ -39,4 +39,11 @@ conda install -f numpy --yes
 # fi
 
 # Install cvxbenchmarks
+# python setup.py install
+# Conda install cvxbenchmarks dependencies for faster setup:
+conda install pandas Jinja2 tabulate matplotlib
+
+# Pytest installation
+pip install pytest pytest-cov
+
 python setup.py install
