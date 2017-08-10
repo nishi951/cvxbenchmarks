@@ -1,6 +1,8 @@
 # cvxbenchmarks
 A testing framework for convex solvers in CVXPY.
 
+[![Build Status](https://travis-ci.org/nishi951/cvxbenchmarks.svg?branch=master)](https://travis-ci.org/nishi951/cvxbenchmarks)
+
 ## Installation
 
 After cloning the repo, run:
