@@ -44,6 +44,6 @@ conda install -f numpy --yes
 conda install --yes pandas Jinja2 matplotlib
 
 # Pip install some stuff
-yes | pip install pytest pytest-cov tabulate
+yes | pip install pytest pytest-cov mock tabulate
 
 python setup.py install
