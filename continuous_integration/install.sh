@@ -24,7 +24,7 @@ source activate testenv
 conda install -c cvxgrp --yes scs multiprocess cvxcanon
 # Reinstall numpy to activate mkl
 # https://github.com/ContinuumIO/anaconda-issues/issues/720
-conda install -f numpy
+conda install -f numpy --yes
 
 
 
