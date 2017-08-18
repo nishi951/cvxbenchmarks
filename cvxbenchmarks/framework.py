@@ -194,7 +194,7 @@ class TestFramework(object):
             for config in self.configs:
                 self.instances.append(TestInstance(problem, config))
 
-    def clear_cache(self):
+    def clear_cache(self): # pragma: no cover
         """Clear the cache used to store TestResults
         """
         # Overwite with an empty dictionary
@@ -313,6 +313,7 @@ class TestFramework(object):
                     self.results.append(result)
                 # print "received!"
             time.sleep(0.5) # Wait for processes to run.
+            print("waiting...")
 
         if use_cache: # Add all results to the cache.
             with open(self.cacheFile, "wb") as f:

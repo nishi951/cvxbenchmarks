@@ -58,8 +58,8 @@ def main(args):
     # Save data frame to a file.
     # results.to_pickle(resultsFile+".pkl")
 
-    import warnings
-    warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
+    # import warnings
+    # warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning)
     results.to_pickle(resultsFile)
     # results.to_hdf(resultsFile, key="results", mode="w")
     print("saved results to {}".format(resultsFile))
