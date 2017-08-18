@@ -14,7 +14,7 @@ def main(args):
         ("basis_pursuit.j2", "basis_pursuit_params.csv"),
         ("chebyshev.j2", "chebyshev_params.csv"),
         ("chebyshev_epigraph.j2", "chebyshev_params.csv"),
-        # ("covsel.j2", "covsel_params.csv"),
+        ("covsel.j2", "covsel_params.csv"),
         ("fused_lasso.j2", "fused_lasso_params.csv"),
         ("hinge_l1.j2", "hinge_l1_params.csv"),
         ("hinge_l2.j2", "hinge_l2_params.csv"),
@@ -33,7 +33,7 @@ def main(args):
         ("portfolio.j2", "portfolio_params.csv"),
         ("qp.j2", "qp_params.csv"),
         ("quantile.j2", "quantile_params.csv"),
-        # ("robust_pca.j2", "robust_pca_params.csv"),
+        ("robust_pca.j2", "robust_pca_params.csv"),
         ("robust_svm.j2", "robust_svm_params.csv"),
         ("robust_svm_epigraph.j2", "robust_svm_params.csv"),
         ("tv_1d.j2", "tv_1d_params.csv")

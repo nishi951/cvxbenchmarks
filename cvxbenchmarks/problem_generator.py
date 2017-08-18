@@ -162,7 +162,7 @@ class ProblemTemplate(object):
                     f.write(self.template.render(paramDict))
                     print("\tWrote: {}".format(problemID))
 
-        except Exception as e:
+        except Exception as e: # pragma: no cover
             print("Unable to render template: {}".format(self.name))
             print(e)
 

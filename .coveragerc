@@ -1,0 +1,4 @@
+[run]
+omit = 
+    cvxbenchmarks/oldtests/*
+    cvxbenchmarks/scripts/*

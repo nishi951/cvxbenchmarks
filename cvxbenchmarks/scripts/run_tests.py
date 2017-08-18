@@ -53,7 +53,7 @@ def main(args):
 
     # Export results to a pandas panel
     print("exporting results.")
-    results = framework.export_results_as_panel()
+    results = framework.export_results()
     print(results.to_frame(filter_observations = False)) #filter_observations = False prevents rows with NaN from not appearing.
     # Save data frame to a file.
     # results.to_pickle(resultsFile+".pkl")
@@ -64,7 +64,7 @@ def main(args):
     # results.to_hdf(resultsFile, key="results", mode="w")
     print("saved results to {}".format(resultsFile))
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     main(get_command_line_args())
 
 

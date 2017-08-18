@@ -168,7 +168,7 @@ def test_write_to_dir(mock_read_csv, mock_get_template, template, paramsDf, full
 
     m = mock_open()
     # with patch('cvxbenchmarks.problem_generator.open', m, create=True):
-    with patch('cvxbenchmarks.problem_generator.open', m, create=True):
+    with patch('cvxbenchmarks.problem_generator.open', m):
         templ = ProblemTemplate.from_file("templateName", "params", name="test_problem")
         templ.write_to_dir("problemDir")
         expected_calls = [
@@ -183,7 +183,6 @@ def test_write_to_dir(mock_read_csv, mock_get_template, template, paramsDf, full
         ]
         assert expected_calls == m.mock_calls
 
-    
 
 
 @patch('cvxbenchmarks.problem_generator.Environment.get_template')

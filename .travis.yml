@@ -10,6 +10,6 @@ env:
 install: source continuous_integration/install.sh
 script: bash continuous_integration/test_script.sh
 after_success:
-    - if [[ $PYTHON_VERSION == "3.6*" ]]; then
+    - if [[ "$PYTHON_VERSION" == "3.6*" ]]; then
           coveralls;
       fi

@@ -1,4 +1,4 @@
 # SCS
 solver = "SUPERSCS"
-verbose = False
+verbose = 1
 kwargs = {"eps" : 1e-5}
