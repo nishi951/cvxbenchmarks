@@ -15,6 +15,9 @@ from cvxpy.constraints.exponential import ExpCone
 from cvxpy.constraints.second_order import SOC
 from cvxpy.constraints.bool_constr import BoolConstr
 
+# SizeMetrics
+from cvxpy.problems.problem import SizeMetrics
+
 from warnings import warn
 
 STOP = "STOP" # Poison pill for parallel solve subroutine.
@@ -156,7 +159,7 @@ class TestFramework(object):
         """Loads all the problems in self.problemDir and adds them to 
         self.test_problems.
         """
-        for dirname, dirnames, filenames in os.walk(self.problemDir):
+        for _, _, filenames in os.walk(self.problemDir):
             for filename in filenames:
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     self.load_problem_file(filename[0:-3])
@@ -181,7 +184,7 @@ class TestFramework(object):
     def preload_all_configs(self):
         """Loads all the configs in self.configDir and adds them to self.configs.
         """
-        for dirname, dirnames, filenames in os.walk(self.configDir):
+        for _, _, filenames in os.walk(self.configDir):
             for filename in filenames:
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     configID = filename[0:-3]
@@ -272,7 +275,7 @@ class TestFramework(object):
             try:
                 with open(self.cacheFile, "rb") as f:
                     cachedResults = pkl.load(f)
-            except:
+            except: # pragma: no cover
                 print("Creating new cache file: {}".format(self.cacheFile))
             with open(self.cacheFile, "wb") as f:
                 for instance in self.instances:
@@ -313,7 +316,6 @@ class TestFramework(object):
                     self.results.append(result)
                 # print "received!"
             time.sleep(0.5) # Wait for processes to run.
-            print("waiting...")
 
         if use_cache: # Add all results to the cache.
             with open(self.cacheFile, "wb") as f:
@@ -331,22 +333,37 @@ class TestFramework(object):
         Returns
         -------
         output : pandas.DataFrame
-            A panel containing the results of the testing.
+            A (multiindex) dataframe containing the results of the testing.
+            The first index is the multiindex combining the problem IDs 
+            and the config IDs.
+            The second index is a normal 1D index consisting of the keys 
+            (e.g. solve_time, num_iters, etc.)
+
+            The access format is:
+            output.loc[(problemID, configID), key]
+
+            Example: To access the solve time of scs on the problem basis_pursuit_0,
+            we would do:
+
+            output.loc[("basis_pursuit_0", "scs_config"), "solve_time"]
+
         """
-        problemIDs = [problem.id for problem in self.problems]
-        configIDs = [config.id for config in self.configs]
+        #TODO: Unnecessary? Derive from self.results
+        problemIDs = [result.test_problem for result in self.results]
+        configIDs = [result.config for result in self.results]
 
         # Make a dummy TestResults instance to generate labels:
-        dummy = TestResults(None)
-        attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
-        labels = [label[0] for label in attributes if not(label[0].startswith('__') and label[0].endswith('__'))]
+        # dummy = TestResults(None)
+        # attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
+        # labels = [label[0] for label in attributes if not(label[0].startswith('__') and label[0].endswith('__'))]
         # Unpack size_metrics label with another dummy
-        dummy = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
-        attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
-        size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and \
-                                                                       label[0].endswith('__'))]
-
-        labels += size_metrics_labels
+        # dummy = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
+        # attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
+        # size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and \
+                                                                       # label[0].endswith('__'))]
+        labels = list(TestResults(None).__dict__.keys())
+        size_metrics_inst = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
+        labels += list(size_metrics_inst.__dict__.keys())
 
         # Remove unused (i.e. redundant) columns
         labels.remove("size_metrics")
@@ -355,7 +372,7 @@ class TestFramework(object):
 
         # output = pd.Panel(items=labels, major_axis=problemIDs, minor_axis=configIDs)
         multiindex = pd.MultiIndex.from_product([problemIDs, configIDs])
-        s = pd.DataFrame(index = multiindex, columns = labels)
+        output = pd.DataFrame(index = multiindex, columns = labels)
 
         for result in self.results:
             result_dict = result.__dict__
@@ -375,19 +392,20 @@ class TestFramework(object):
                 output.loc[(problemID, configID), key] = value
 
         # Compute Statistics
+        output.fillna(value=np.nan, inplace=True)
         try:
             TestFramework.compute_mosek_error(output, "opt_val", "mosek_config")
-        except (KeyError):
+        except (KeyError): # pragma: no cover
             print("TestFramework.compute_mosek_error: 'mosek_config' or 'opt_val' field not found.")
         try:
             TestFramework.compute_performance(output, "solve_time")
-        except (KeyError):
+        except (KeyError): # pragma: no cover
             print("TestFramework.compute_performance: 'solve_time' field not found.")
         return output
 
-    @classmethod
-    def compute_mosek_error(self, results, opt_val, mosek_config, abstol=10e-4):
-        """Takes a panel of results including a field of optimal values and computes the relative error
+    @staticmethod
+    def compute_mosek_error(results, opt_val, mosek_config, abstol=10e-4):
+        """Takes a dataframe of results including a field of optimal values and computes the relative error
 
             error - using MOSEK as a standard, the error in the optimal value
                 defined as |value - MOSEK|/(abstol + |MOSEK|)
@@ -409,8 +427,7 @@ class TestFramework(object):
         """
         problemsIndex = results.axes[0].levels[0]
         configsIndex = results.axes[0].levels[1]
-        error = pd.DataFrame(index=problemsIndex, # Problems 
-                             columns=configsIndex) # Configs
+        error = pd.Series(index=results.axes[0]) # (problem, config) multiindex
         for configID in configsIndex:
             for problemID in problemsIndex:
                 absdiff = np.absolute(
@@ -418,11 +435,11 @@ class TestFramework(object):
                         results.loc[(problemID, mosek_config), opt_val]))
                 absmosek = np.absolute(
                                results.loc[(problemID, mosek_config), opt_val])
-                error.loc[problemID, configID] = absdiff/(abstol + absmosek)
+                error.loc[(problemID, configID)] = absdiff/(abstol + absmosek)
         results["error"] = error
 
-    @classmethod
-    def compute_performance(self, results, time, rel_max=10e10):
+    @staticmethod
+    def compute_performance(results, time, rel_max=10e10):
         """Takes a panel of results including a field of time data and computes the relative performance
         as defined in Dolan, More 2001. "Benchmarking optimization software with performance profiles"
 
@@ -447,8 +464,8 @@ class TestFramework(object):
         """
         problemsIndex = results.axes[0].levels[0]
         configsIndex = results.axes[0].levels[1]
-        performance = pd.DataFrame(index=problemsIndex, # Problems 
-                                   columns=configsIndex) # Configs
+        performance = pd.Series(index=results.axes[0]) # (problem, config) multiindex
+        num_problems = 0
         for problem in problemsIndex:
             num_problems += 1
             best = rel_max
@@ -461,17 +478,17 @@ class TestFramework(object):
             if best == rel_max:
                 # No solver could solve this problem.
                 print("all solvers failed on {}".format(problem))
-                for config in results.axes[2]:
-                    performance.loc[problem, config] = rel_max;
+                for config in configsIndex:
+                    performance.loc[(problem, config)] = rel_max;
                 continue
 
 
             else: # Compute t/t_best for each problem for each config
-                for config in results.axes[2]:
+                for config in configsIndex:
                     if math.isnan(results.loc[(problem, config), time]):
-                        performance.loc[problem, config] = rel_max
+                        performance.loc[(problem, config)] = rel_max
                     else:
-                        performance.loc[problem, config] = \
+                        performance.loc[(problem, config)] = \
                             results.loc[(problem, config), time]/best
 
         results["performance"] = performance
@@ -494,7 +511,7 @@ class TestProblem(object):
     def __init__(self, problemID, problem):
         self.id = problemID
         self.problem = problem
-        self.tags = TestProblem.check_cone_types(problem)
+        self.tags = TestProblem.get_cone_types(problem)
 
     @classmethod
     def get_all_from_file(cls, fileID, problemDir):
@@ -562,7 +579,7 @@ class TestProblem(object):
 
 
     @staticmethod
-    def check_cone_types(problem):
+    def get_cone_types(problem):
         """
         Parameters
         ----------
@@ -587,6 +604,21 @@ class TestProblem(object):
             elif isinstance(constr, BoolConstr): # Mixed-integer program
                 coneTypes.add(s.MIP)
         return coneTypes
+
+    @staticmethod
+    def get_cone_sizes(problem): # pragma: no cover
+        """
+        Parameters
+        ----------
+        problem : cvxpy.Problem
+            The problem whose cones we are investigating.
+
+        Returns
+        -------
+        coneSizes : dict
+            A dictionary mapping the cone type to the total number of variables constrained to be in that cone.
+        """
+        return NotImplemented
 
     def __repr__(self):
         return str(self.id) + ": " + str(self.problem)
@@ -725,7 +757,7 @@ class TestInstance(object):
             return results
 
         # Record residual gross stats:
-        results.avg_abs_resid, results.max_resid = TestInstance.compute_residual_stats(problem)
+        results.avg_abs_resid, results.max_resid = TestResults.compute_residual_stats(problem)
         print("computed stats for {} with config {}".format(self.testproblem.id, self.config.id))
 
         # Record problem metrics:
@@ -742,9 +774,10 @@ class TestInstance(object):
         return str(self) == str(other)
 
     def __hash__(self):
+        old_options = np.get_printoptions()
         np.set_printoptions(threshold=10, precision=3) # Shorten the string representation.
         digest = int(hashlib.sha256(str(self).encode("utf-16")).hexdigest(), 16)
-        np.set_printoptions(threshold=1000, precision = 8) # Restore defaults
+        np.set_printoptions(**old_options) # Restore 
         return digest
 
 class TestResults(object):
@@ -790,7 +823,6 @@ class TestResults(object):
         self.avg_abs_resid = None
         self.max_resid = None
         self.size_metrics = None
-
 
     @staticmethod
     def compute_residual_stats(problem):
@@ -844,6 +876,7 @@ class TestResults(object):
         if n_residuals == 0:
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
+
 
 
 

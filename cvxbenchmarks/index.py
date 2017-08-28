@@ -58,7 +58,7 @@ class Index(object):
                 if filename[-3:] == ".py" and filename != "__init__.py":
                     problemID = filename[0:-3]
                     print("\t{}".format(problemID))
-                    problems = TestProblem.from_file(problemID, problemDir)
+                    problems = TestProblem.get_all_from_file(problemID, problemDir)
                     for testproblem in problems:
                         next = pd.Series(testproblem.problem.size_metrics.__dict__, name = problemID)
                         # Add cone types

@@ -11,10 +11,23 @@ EXP = "EXP"
 MIP = "MIP"
 TAGS = [LP, QP, SOCP, SDP, EXP, MIP]
 
-# TestProblem Parameters
+# Keywords
 PROBLEM_ID = "problemID"
+CONFIG_ID = "configID"
+INSTANCEHASH = "instancehash"
 PROBLEM = "problem"
 OPT_VAL = "opt_val"
+TEST_PROBLEM_ID = "test_problem_id"
+SOLVE_TIME = "solve_time"
+SETUP_TIME = "setup_time"
+NUM_ITERS = "num_iters"
+STATUS = "status"
+AVG_ABS_RESID = "avg_abs_resid"
+MAX_RESID = "max_resid"
+
+# From size_metrics
+
+
 
 # Searching through problem files
 PROBLEM_LIST = ["problems"]

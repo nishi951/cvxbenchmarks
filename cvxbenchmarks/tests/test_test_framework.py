@@ -1,5 +1,7 @@
 import pytest
 from mock import patch, call, mock_open, MagicMock, Mock
+import numpy as np
+import pandas as pd
 
 import cvxbenchmarks.framework as t
 
@@ -9,18 +11,17 @@ import cvxbenchmarks.framework as t
 # Picklable, for passing through a multiprocessing.Queue
 class MockTestResult(object):
     def __init__(self, problem, config):
-        self.tuple = (problem, config)
+        self.test_problem = problem
+        self.config = config
+
         self.instancehash = hash((problem, config))
 
-def mock_testresult(problem, config):
-    result = MockTestResult(problem, config)
-    return result
 
 def mock_testinstance():
     testinstance = MagicMock()
     def init_side_effect(problem, config):
         instance = MagicMock(name="testinstance_{}_{}".format(problem, config))
-        instance.run.return_value = mock_testresult(problem, config)
+        instance.run.return_value = MockTestResult(problem, config)
         instance.__hash__.return_value = hash((problem, config))
         instance.testproblem.id = problem
         instance.config.id = config
@@ -65,22 +66,35 @@ def nondefault_parameters(request):
 
 @pytest.fixture
 def before_cache_pkl():
-    return {hash(("prob1", "config1")): mock_testresult("prob1", "config1"),
-            hash(("prob1", "config2")): mock_testresult("prob1", "config2")}
+    return {hash(("prob1", "config1")): MockTestResult("prob1", "config1"),
+            hash(("prob1", "config2")): MockTestResult("prob1", "config2")}
 
 @pytest.fixture
 def after_cache_pkl():
-    results = [mock_testresult("prob1", "config1"),
-           mock_testresult("prob2", "config1"),
-           mock_testresult("prob1", "config2"),
-           mock_testresult("prob2", "config2")]
+    results = [MockTestResult("prob1", "config1"),
+           MockTestResult("prob2", "config1"),
+           MockTestResult("prob1", "config2"),
+           MockTestResult("prob2", "config2")]
     all_results = {}
     for result in results:
-        all_results[result.instancehash] = result.tuple
+        all_results[result.instancehash] = (result.test_problem, result.config)
     return all_results
 
+@pytest.fixture
+def sample_results():
+    results = pd.DataFrame(index = pd.MultiIndex.from_product([["prob1", "prob2",
+        ], ["mosek_config", "config1"]]), columns = ["opt_val", "solve_time"])
+    results.loc[("prob1", "mosek_config"),:] = [1.0, 0.1]
+    results.loc[("prob1", "config1"),:] = [0.99, 1.0]
+    results.loc[("prob2", "mosek_config"),:] = [5.0, 2.0]
+    results.loc[("prob2", "config1"),:] = [6.0, 8.0]
+    return results
 
 
+
+#########
+# Tests #
+#########
 
 def test_testframework_init(default_parameters, nondefault_parameters):
     framework1 = t.TestFramework(**default_parameters)
@@ -217,7 +231,7 @@ def test_testframework_solve_all_no_cache(mock_testinstance,
                ("prob2", "config1"),
                ("prob1", "config2"),
                ("prob2", "config2")]
-    assert sorted([result.tuple for result in framework1.results]) == \
+    assert sorted([(result.test_problem, result.config) for result in framework1.results]) == \
            sorted(results)
 
 
@@ -249,7 +263,7 @@ def test_testframework_solve_all_cache(mock_testinstance,
     with patch("cvxbenchmarks.framework.open", m):
         framework2.solve_all(use_cache = True)
         print(framework2.results)
-        assert sorted([result.tuple for result in framework2.results]) == \
+        assert sorted([(result.test_problem, result.config) for result in framework2.results]) == \
                sorted(results)
 
         # Make sure results were not run if they were cached.
@@ -257,6 +271,7 @@ def test_testframework_solve_all_cache(mock_testinstance,
             if hash(instance) in old_cache:
                 instance.run.assert_not_called()
 
+@pytest.mark.parallel
 @patch("cvxbenchmarks.framework.SolverConfiguration", new_callable=mock_solverconfiguration)
 @patch("cvxbenchmarks.framework.TestProblem", new_callable = mock_testproblem)
 @patch("cvxbenchmarks.framework.TestInstance", new_callable = mock_testinstance)
@@ -274,9 +289,10 @@ def test_testframework_solve_all_parallel_no_cache(mock_testinstance,
                ("prob2", "config1"),
                ("prob1", "config2"),
                ("prob2", "config2")]
-    assert sorted([result.tuple for result in framework1.results]) == \
+    assert sorted([(result.test_problem, result.config) for result in framework1.results]) == \
            sorted(results)
 
+@pytest.mark.parallel
 @patch("cvxbenchmarks.framework.pkl.dump")
 @patch("cvxbenchmarks.framework.pkl.load")
 @patch("cvxbenchmarks.framework.SolverConfiguration", new_callable=mock_solverconfiguration)
@@ -306,7 +322,7 @@ def test_testframework_solve_all_parallel_cache(mock_testinstance,
 
     with patch("cvxbenchmarks.framework.open", m):
         framework2.solve_all_parallel(use_cache = True)
-        assert sorted([result.tuple for result in framework2.results]) == \
+        assert sorted([(result.test_problem, result.config) for result in framework2.results]) == \
                sorted(results)
         # Make sure results were not run if they were cached.
         for instance in framework2.instances:
@@ -314,9 +330,39 @@ def test_testframework_solve_all_parallel_cache(mock_testinstance,
                 instance.run.assert_not_called()
 
 
-def test_testframework_export_results():
-    pass
+def test_testframework_export_results(default_parameters):
+    framework1 = t.TestFramework(**default_parameters)
+    result1 = MockTestResult("prob1", "config1")
+    result1.opt_val = 0.0
+    result1.solve_time = 1.0
+    result1.size_metrics = MagicMock()
+    result1.size_metrics.__dict__ = {"num_variables" : 3}
 
+
+    result2 = MockTestResult("prob2", "config2")
+    result2.opt_val = None
+    result2.solve_time = None
+    result2.size_metrics = MagicMock()
+    result2.size_metrics.__dict__ = {"num_variables" : 5}
+
+    framework1.results = [result1, result2]
+
+    results = framework1.export_results()
+    assert results.loc[("prob1", "config1"), "opt_val"] == 0.0
+    assert results.loc[("prob1", "config1"), "solve_time"] == 1.0
+    assert results.loc[("prob1", "config1"), "num_variables"] == 3
+
+    assert np.isnan(results.loc[("prob2", "config2"), "opt_val"])
+    assert np.isnan(results.loc[("prob2", "config2"), "solve_time"])
+    assert results.loc[("prob2", "config2"), "num_variables"] == 5
+
+def test_testframework_compute_mosek_error(sample_results):
+    results = sample_results.copy()
+    t.TestFramework.compute_mosek_error(results, "opt_val", "mosek_config")
+
+def test_testframework_compute_performance(sample_results):
+    results = sample_results.copy()
+    t.TestFramework.compute_performance(results, "solve_time")
 
 
 

@@ -6,7 +6,7 @@ import numpy as np
 
 # Just provide functions for now (no OOP)
 
-def plot_performance_profile(results, rel_max = 10e10, xmin=1, xmax=100):
+def plot_performance_profile(results, problemIndex=None, configIndex=None, rel_max=10e10, xmin=1, xmax=100):
     """Type: step plot
     x-axis : tau
     y-axis : performance 
@@ -15,8 +15,10 @@ def plot_performance_profile(results, rel_max = 10e10, xmin=1, xmax=100):
 
     Parameters
     ----------
-    results : pandas.panel
-        The panel containing the results of the testing.
+    results : pandas.DataFrame
+        The dataframe containing the results of the testing. The first index
+        is a multiindex of (problemID, config) and the second index is
+        the label e.g. "solve_time".
     rel_max : float
         The default value of performance for the case when
         a solver fails to solve a problem. We should have
@@ -24,9 +26,15 @@ def plot_performance_profile(results, rel_max = 10e10, xmin=1, xmax=100):
         problems j.
 
     """
-    for config in results.axes[2]:
-        num_problems = len(results.axes[1])
-        x = sorted(results.loc["performance", :, config]) 
+    results.sort_index(inplace=True)
+    if problemIndex is None:
+        problemIndex = results.axes[0].levels[0]
+    if configIndex is None:
+        configIndex = results.axes[0].levels[1]
+    labels = results.axes[1]
+    for config in configIndex:
+        num_problems = len(problemIndex)
+        x = sorted(results.loc[(problemIndex.tolist(), config), "performance"]) 
         y = [len([val for val in x if val <= tau])/float(num_problems) for tau in x]
 
         # Extend the line all the way to the left. (DO THIS FIRST)
@@ -49,13 +57,13 @@ def plot_performance_profile(results, rel_max = 10e10, xmin=1, xmax=100):
     plt.ylabel(r'$P(r_{p,s} \leq \tau : 1 \leq s \leq n_s)$')
 
 
-def plot_scatter_by_config(results, x_field, y_field, logx = False, logy = False):
+def plot_scatter_by_config(results, x_field, y_field, problemIndex=None, configIndex=None, logx = False, logy = False):
     """Generic scatter plot for results panel.
     
     Parameters
     ----------
-    results : pandas.panel
-        The panel containing the results of the testing.
+    results : pandas.DataFrame
+        The multiindex data frame containing the results of the testing.
     x_field : list or string
         A list of fields in results (or a single string) to
         be summed and log-plotted on the x axis.
@@ -67,22 +75,29 @@ def plot_scatter_by_config(results, x_field, y_field, logx = False, logy = False
     logy : Boolean
         Whether or not to plot the y-axis on a log scale
     """
+    results.sort_index(inplace=True)
+    if problemIndex is None:
+        problemIndex = results.axes[0].levels[0]
+    if configIndex is None:
+        configIndex = results.axes[0].levels[1]
+    labels = results.axes[1]
     # Color-code by configuration
-    config_colors = ['b', 'c', 'y', 'm', 'r']
+    # config_colors = ['b', 'c', 'y', 'm', 'r']
     serieslist = []
-    for i, config in enumerate(results.axes[2]):
+    for i, config in enumerate(configIndex):
         if type(x_field) is list:
-            x = pd.DataFrame.sum(results.loc[x_field, :, config], axis = 1).values
+            x = pd.DataFrame.sum(results.loc[(problemIndex.tolist(), config), x_field], axis = 1).values
         else:
-            x = results.loc[x_field, :, config].values
+            x = results.loc[(problemIndex.tolist(), config), x_field].values
         if type(y_field) is list:
-            y = pd.DataFrame.sum(results.loc[y_field, :, config], axis = 1).values
+            y = pd.DataFrame.sum(results.loc[(problemIndex.tolist(), config), y_field], axis = 1).values
         else:
-            y = results.loc[y_field, :, config].values
+            y = results.loc[(problemIndex.tolist(), config), y_field].values
 
         # log scale or not:
         ax = plt.gca()
-        series = plt.scatter(x, y, marker = 'o', color = config_colors[i])
+        # series = plt.scatter(x, y, marker = 'o', color = config_colors[i])
+        series = plt.scatter(x, y, marker = 'o')
         if logx:
             ax.set_xscale("log")
         if logy:
@@ -91,7 +106,7 @@ def plot_scatter_by_config(results, x_field, y_field, logx = False, logy = False
         serieslist.append(series)
 
     plt.legend(tuple(serieslist),
-               tuple(results.axes[2]),
+               tuple(configIndex),
                scatterpoints=1,
                loc='lower left',
                ncol=3,
@@ -101,7 +116,7 @@ def plot_scatter_by_config(results, x_field, y_field, logx = False, logy = False
     plt.ylabel(str(y_field))
 
 
-def plot_histograms_by_config(results):
+def plot_histograms_by_config(results, problemIndex=None, configIndex=None):
     """For each configuration, plots a histogram of the error tolerances.
 
     Parameters
@@ -109,9 +124,15 @@ def plot_histograms_by_config(results):
     results : pandas.panel
         The panel containing the results of the testing.
     """
-    for config in results.axes[2]:
+    results.sort_index(inplace=True)
+    if problemIndex is None:
+        problemIndex = results.axes[0].levels[0]
+    if configIndex is None:
+        configIndex = results.axes[0].levels[1]
+    labels = results.axes[1]
+    for config in configIndex:
         plt.figure()
-        x = results.loc["error", :, config].values
+        x = results.loc[(problemIndex.tolist(), config), "error"].values
         plt.hist(x, bins = 10, log = True)
         plt.title("Errors for " + config)
         plt.xlabel(r'$\log{\frac{|p - p_{mosek}|}{t_{abs} + |p_{mosek}|}}$')

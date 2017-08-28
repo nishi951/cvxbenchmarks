@@ -15,6 +15,7 @@ htmlcov
 
 # Random files
 cvxbenchmarks/old
+cvxbenchmarks/oldproblems
 cvxbenchmarks/figs.pdf
 cvxbenchmarks/results.dat
 *index.tex

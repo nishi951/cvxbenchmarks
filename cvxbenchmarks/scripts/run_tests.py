@@ -54,7 +54,8 @@ def main(args):
     # Export results to a pandas panel
     print("exporting results.")
     results = framework.export_results()
-    print(results.to_frame(filter_observations = False)) #filter_observations = False prevents rows with NaN from not appearing.
+    print(results)
+    # print(results.to_frame(filter_observations = False)) #filter_observations = False prevents rows with NaN from not appearing.
     # Save data frame to a file.
     # results.to_pickle(resultsFile+".pkl")
 

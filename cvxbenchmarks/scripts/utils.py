@@ -57,6 +57,11 @@ def get_command_line_args():
     parser.add_argument("--format", type=str,
                         default="png",
                         help="The format to output the plots to.")
+    parser.add_argument("--include-nonoptimal", action='store_true',
+                        help=("include problems that were solved suboptimally "+
+                              "in the analysis. By default, the analysis only "+
+                              "considers problems solved optimally by all "+
+                              "solvers"))
 
     # generate
     parser.add_argument("--tags", type=str, nargs='+',
@@ -83,7 +88,7 @@ def get_command_line_args():
                         help="disable cache use during run.") # Double negatives...
     parser.add_argument("--clear-cache", action='store_true',
                         help="clear the problem results cache.")
-    parser.add_argument("--problems", type=str, 
+    parser.add_argument("--problems", type=str, nargs='+',
                         help="specify a list of problems to benchmark.")
     parser.add_argument("--configDir", type=str, 
                         default="cvxbenchmarks/lib/configs",
