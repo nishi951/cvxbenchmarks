@@ -1,4 +1,4 @@
 # GUROBI
-solver = "GUROBI"
-verbose = False
-kwargs = {}
+config = {
+    "solver": "GUROBI"
+}

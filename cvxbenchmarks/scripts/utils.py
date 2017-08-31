@@ -45,7 +45,8 @@ def get_command_line_args():
                          choices=("analyze", 
                                   "generate",
                                   "run",
-                                  "render"),
+                                  "render",
+                                  "view"),
                          help="the cvxbench script to run.")
 
     # Script-specific
@@ -103,6 +104,10 @@ def get_command_line_args():
 
     # render
     # --template-and-params
+
+    # view
+    parser.add_argument("--stats", type=str, nargs='+',
+                        help=("a list of names of result data entries to view"))
 
     args = parser.parse_args()
     # print(args)

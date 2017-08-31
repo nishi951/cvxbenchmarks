@@ -7,6 +7,8 @@ import math
 
 import hashlib, pickle as pkl
 
+from collections import namedtuple
+
 import cvxbenchmarks.settings as s
 
 # Constraint types
@@ -348,9 +350,8 @@ class TestFramework(object):
             output.loc[("basis_pursuit_0", "scs_config"), "solve_time"]
 
         """
-        #TODO: Unnecessary? Derive from self.results
-        problemIDs = [result.test_problem for result in self.results]
-        configIDs = [result.config for result in self.results]
+        problemIDs = [result.problemID for result in self.results]
+        configIDs = [result.configID for result in self.results]
 
         # Make a dummy TestResults instance to generate labels:
         # dummy = TestResults(None)
@@ -361,35 +362,26 @@ class TestFramework(object):
         # attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
         # size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and \
                                                                        # label[0].endswith('__'))]
-        labels = list(TestResults(None).__dict__.keys())
-        size_metrics_inst = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
-        labels += list(size_metrics_inst.__dict__.keys())
-
-        # Remove unused (i.e. redundant) columns
+        labels = []
+        labels.extend(TestResults._fields)
+        labels.extend(SizeMetrics._fields)    
+        # Remove unused columns
         labels.remove("size_metrics")
-        labels.remove("test_problem")
-        labels.remove("config")
+        labels.remove("problemID")
+        labels.remove("configID")
 
         # output = pd.Panel(items=labels, major_axis=problemIDs, minor_axis=configIDs)
-        multiindex = pd.MultiIndex.from_product([problemIDs, configIDs])
-        output = pd.DataFrame(index = multiindex, columns = labels)
+        multiindex = pd.MultiIndex.from_product([problemIDs, configIDs], names=["problems", "configs"])
+        output = pd.DataFrame(index=multiindex, columns=labels)
+        output.columns.names = ["stats"]
 
         for result in self.results:
-            result_dict = result.__dict__
-
-            # Unpack the size_metrics object inside it:
-            sizemetrics_dict = result_dict["size_metrics"].__dict__
-            del(result_dict["size_metrics"])
-
-            result_dict.update(sizemetrics_dict)
-
-            problemID = result_dict["test_problem"]
-            del(result_dict["test_problem"])
-            configID = result_dict["config"]
-            del(result_dict["config"])
-
-            for key, value in list(result_dict.items()):
-                output.loc[(problemID, configID), key] = value
+            problemID = result.problemID
+            configID = result.configID
+            for label in [label for label in TestResults._fields if label in labels]:
+                output.loc[(problemID, configID), label] = getattr(result, label)
+            for label in [label for label in SizeMetrics._fields if label in labels]:
+                output.loc[(problemID, configID), label] = getattr(result.size_metrics, label)
 
         # Compute Statistics
         output.fillna(value=np.nan, inplace=True)
@@ -495,7 +487,7 @@ class TestFramework(object):
 
 
 
-class TestProblem(object):
+class TestProblem(namedtuple("TestProblem", ["id", "problem", "tags"])):
     """Expands the Problem class to contain extra details relevant to the testing architecture.
 
     Attributes
@@ -508,10 +500,9 @@ class TestProblem(object):
         A list of tags in {LP, SOCP, SDP, EXP, MIP} that describe
         the required solver capabilities to solve this problem.
     """
-    def __init__(self, problemID, problem):
-        self.id = problemID
-        self.problem = problem
-        self.tags = TestProblem.get_cone_types(problem)
+    def __new__(cls, problemID, problem):
+        self = super(TestProblem, cls).__new__(cls, problemID, problem, cls.get_cone_types(problem))
+        return self
 
     @classmethod
     def get_all_from_file(cls, fileID, problemDir):
@@ -575,7 +566,10 @@ class TestProblem(object):
         -------
         TestFramework.TestProblem object.
         """
-        return cls(problemDict["problemID"], problemDict["problem"])
+        return cls(problemDict["problemID"],
+                   problemDict["problem"],
+                   cls.get_cone_types(problemDict["problem"])
+               )
 
 
     @staticmethod
@@ -620,33 +614,39 @@ class TestProblem(object):
         """
         return NotImplemented
 
-    def __repr__(self):
-        return str(self.id) + ": " + str(self.problem)
-
-    def __eq__(self, other):
-        return self.id == other.id and self.problem == other.problem
+TestProblem.__new__.__defaults__ = (None, None, None)
 
 
-class SolverConfiguration(object):
+
+
+class SolverConfiguration(namedtuple("SolverConfiguration", ["id", "config"])):
     """An object for managing the configuration of the cvxpy solver.
 
     Attributes
     ----------
     id : string
         A unique identifier for this configuration.
-    solver : string
-        The name of the solver for which we are creating the configuration.
-    verbose : boolean
-        True if we want to capture the solver output, false otherwise.
-    kwargs : dictionary
-        Specifies the keyword arguments for the specific solver we are using.
-    """
+    config : dict
+        A dictionary containing the configuration data. CVXPY's Problem.solve()
+        uses the following arguments:
 
-    def __init__(self, configID, solver, verbose, kwargs):
-        self.id = configID
-        self.solver = solver
-        self.verbose = verbose
-        self.kwargs = kwargs
+            solver,
+            ignore_dcp,
+            warm_start,
+            verbose,
+            parallel
+
+        And any extra arguments are collected into a **kwargs argument.
+
+        For example:
+        {
+            "solver": "SCS",
+            "verbose": True,
+            "eps": 1e-4
+        }
+        would set the solver to be SCS, verbose to be True, and the epsilon
+        tolerance of the solver to be 1e-4.
+    """
 
     @classmethod
     def from_file(cls, configID, configDir):
@@ -669,64 +669,43 @@ class SolverConfiguration(object):
             sys.path.insert(0, configDir)
         configObj = __import__(configID)
         if configObj.solver in cvx.installed_solvers():
-            return cls(configID, configObj.solver, configObj.verbose, configObj.kwargs)
+            return cls(configID, **configObj.config)
         else:
             return None
 
-    def __repr__(self):
-        return str((str(self.id), str(self.solver), str(self.verbose), str(self.kwargs)))
-
-    def __eq__(self, other):
-        return (self.id == other.id) and \
-               (self.solver == other.solver) and \
-               (self.verbose == other.verbose) and \
-               (self.kwargs == other.kwargs)
+SolverConfiguration.__new__.__defaults__ = (None, None)
 
 
-class TestInstance(object):
+
+class TestInstance(namedtuple("TestInstance", ["testproblem", "solverconfig"])):
     """An object for managing the data collection for a particular problem instance and
     a particular solver configuration.
 
     Attributes
     ----------
 
-    problem : TestFramework.TestProblem
+    testproblem : TestFramework.TestProblem
        The problem to be solved.
-    config : TestFramework.SolverConfiguration
+    solverconfig : TestFramework.SolverConfiguration
        The configuration to use when solving this particular problem instance.
 
-    Results: dictionary
-        Contains the following keys:
-        solve_time :
-
-        status : string
-            The status of the problem after solving, reported by the problem itself. 
-            (e.g. optimal, optimal_inaccurate, unbounded, etc.)
-        opt_val : float
-            The optimal value of the problem, as determined by the given solver configuration.
-        avg_abs_resid : float
-            The average absolute residual across all scalar problem constraints.
-        max_resid : float
-            The maximum absolute residual across all scalar problem constraints.
-        size_metrics : cvxpy.SizeMetrics
-            An object containing various metrics regarding the scale of the problem.
-
     """
-
-    def __init__(self, testproblem, config):
-        self.testproblem = testproblem
-        self.config = config
 
     def run(self):
         """Runs the problem instance against the solver configuration.
 
         Returns
         -------
-        TestResults - A TestResults instance with the results of running this instance.
+        results : cvxbenchmarks.TestResults
+            A TestResults instance with the results of running this instance.
         """
         problem = self.testproblem.problem
-        results = TestResults(self)
-        # results = Test
+        results = TestResults(problemID=self.testproblem.id,
+                              configID=self.config.id,
+                              instancehash=hash(self))
+        # Record problem size metrics first:
+        results.size_metrics = problem.size_metrics
+
         try:
             start = time.time() # Time the solve
             print("starting {} with config {}".format(self.testproblem.id, self.config.id))
@@ -747,8 +726,6 @@ class TestInstance(object):
         except Exception as e:
             print(e)
             # Configuration could not solve the given problem
-            results = TestResults(self)
-            results.size_metrics = problem.size_metrics
             print(("failure solving {} " + 
                    "with config {} " +
                    "in {} sec.").format(self.testproblem.id, 
@@ -760,15 +737,8 @@ class TestInstance(object):
         results.avg_abs_resid, results.max_resid = TestResults.compute_residual_stats(problem)
         print("computed stats for {} with config {}".format(self.testproblem.id, self.config.id))
 
-        # Record problem metrics:
-        results.size_metrics = problem.size_metrics
-
         print("finished {} with config {} in {} sec.".format(self.testproblem.id, self.config.id, round(time.time()-start, 1)))
         return results
-
-
-    def __repr__(self):
-        return str((str(self.testproblem), str(self.config)))
 
     def __eq__(self, other):
         return str(self) == str(other)
@@ -780,13 +750,27 @@ class TestInstance(object):
         np.set_printoptions(**old_options) # Restore 
         return digest
 
-class TestResults(object):
+TestInstance.__new__.__defaults__ = (None, None)
+
+
+
+class TestResults(namedtuple("TestResults", 
+    ["problemID", "configID", "instancehash",
+     "solve_time", "setup_time", "num_iters",
+     "status", "opt_val", "avg_abs_resid", "max_resid",
+     "size_metrics"])):
     """Holds the results of running a test instance.
 
     Attributes
     ----------
-    test_instance : TestFramework.TestInstance
-        The hash of the test instance that generated this
+    Solve-related statistics:
+
+    problemID : str
+        The ID of the TestProblem.
+    configID : str
+        The ID of the SolverConfiguration.
+    instancehash : int
+        The hash digest of the TestInstance (used for caching).
     solve_time : float
         The time (in seconds) it took for the solver to solve the problem.
     setup_time : float
@@ -802,27 +786,9 @@ class TestResults(object):
     max_resid : float
         The maximum absolute residual across all scalar problem constraints.
     size_metrics : cvxpy.SizeMetrics
-        An object containing various metrics regarding the scale of the problem.
+        A SizeMetrics object holding stats about the size of the problem.
 
     """
-
-    def __init__(self, test_instance):
-        if test_instance is not None:
-            self.test_problem = test_instance.testproblem.id
-            self.config = test_instance.config.id
-            self.instancehash = hash(test_instance)
-        else:
-            self.test_problem = None
-            self.config = None
-            self.instancehash = None
-        self.solve_time = None
-        self.setup_time = None
-        self.num_iters = None
-        self.status = None
-        self.opt_val = None
-        self.avg_abs_resid = None
-        self.max_resid = None
-        self.size_metrics = None
 
     @staticmethod
     def compute_residual_stats(problem):
@@ -877,7 +843,9 @@ class TestResults(object):
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
 
-
+# 11 entries:
+TestResults.__new__.__defaults__ = (None, None, None, None, None, None, None, None,
+                                    None, None, None)
 
 
 

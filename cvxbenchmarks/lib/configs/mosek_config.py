@@ -1,4 +1,4 @@
 # MOSEK
-solver = "MOSEK"
-verbose = False
-kwargs = {}
+config = {
+    "solver": "MOSEK"
+}

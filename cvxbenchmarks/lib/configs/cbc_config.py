@@ -1,4 +1,4 @@
 # CBC
-solver = "CBC"
-verbose = False
-kwargs = {}
+config = {
+    "solver": "CBC"
+}

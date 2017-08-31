@@ -14,7 +14,7 @@ def main(args):
     print("Loading results from {}...".format(args.results))
     results = pd.read_pickle(args.results)
     # results = pd.read_hdf(args.results)
-    # print(results.to_string())
+    print(results.to_string())
     print("Done.")
 
     # Sort the dataframe in place before accessing it by index:

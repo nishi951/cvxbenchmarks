@@ -1,4 +1,4 @@
 # ECOS
-solver = "ECOS"
-verbose = False
-kwargs = {}
+config = {
+    "solver": "ECOS"
+}

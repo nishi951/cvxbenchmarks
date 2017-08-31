@@ -24,5 +24,9 @@ def main():
         from cvxbenchmarks.scripts import render_template
         render_template.main(args)
 
+    elif args.script == "view":
+        from cvxbenchmarks.scripts import view
+        view.main(args)
+
 if __name__ == '__main__':
     main()

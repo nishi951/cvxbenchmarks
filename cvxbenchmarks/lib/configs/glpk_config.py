@@ -1,4 +1,4 @@
 # GLPK
-solver = "GLPK"
-verbose = False
-kwargs = {}
+config = {
+    "solver": "GLPK"
+}
