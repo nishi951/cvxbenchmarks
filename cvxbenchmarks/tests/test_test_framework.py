@@ -5,7 +5,6 @@ import pandas as pd
 
 import cvxbenchmarks.framework as t
 from collections import namedtuple
-from cvxpy.problems.problem import SizeMetrics
 
 ##################
 # Test Framework #
@@ -331,8 +330,11 @@ def test_testframework_solve_all_parallel_cache(mock_testinstance,
             if hash(instance) in old_cache:
                 instance.run.assert_not_called()
 
+@patch("cvxbenchmarks.framework.SizeMetrics")
+def test_testframework_export_results(mock_size_metrics, default_parameters):
+    mock_size_metrics._fields = ["num_scalar_variables"]
 
-def test_testframework_export_results(default_parameters):
+    SizeMetrics = namedtuple("SizeMetrics", ["num_scalar_variables"])
     framework1 = t.TestFramework(**default_parameters)
     result1 = t.TestResults("prob1", "config1", opt_val=0.0, solve_time=1.0,
                             size_metrics=SizeMetrics(num_scalar_variables=3))
