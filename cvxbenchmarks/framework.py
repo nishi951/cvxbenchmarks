@@ -57,6 +57,7 @@ def worker(problemDir, configDir, work_queue, done_queue):
     """
     while True:
         problemID, configID = work_queue.get()
+        print("received")
         if problemID == STOP:
             # Poison pill
             print("Exiting worker process.")
@@ -240,8 +241,8 @@ class TestFramework(object):
                         # Retrieve TestResult from the results dictionary:
                         self.results.append(cachedResults[instancehash])
                         print(("Retrieved instance result ({}, {}) " +
-                               "from cache.").format(instance.testproblem.id,
-                                                     instance.config.id))
+                               "from cache.").format(instance.testproblem.problemID,
+                                                     instance.config.configID))
                     else:
                         # Add this result to the cache
                         result = instance.run()
@@ -287,12 +288,14 @@ class TestFramework(object):
                         self.results.append(cachedResults[instancehash])
                     else:
                         # Add this result to the cache
-                        work_queue.put((instance.testproblem.id, instance.config.id))
+                        print(instance.testproblem.problemID)
+                        print(instance.config.configID)
+                        work_queue.put((instance.testproblem.problemID, instance.config.configID))
 
         else:
             for instance in self.instances:
-                print((instance.testproblem.id, instance.config.id))
-                work_queue.put((instance.testproblem.id, instance.config.id))
+                print((instance.testproblem.problemID, instance.config.configID))
+                work_queue.put((instance.testproblem.problemID, instance.config.configID))
 
         for w in range(workers):
             p = multiprocessing.Process(target=worker,
@@ -486,8 +489,8 @@ class TestFramework(object):
         results["performance"] = performance
 
 
-
-class TestProblem(namedtuple("TestProblem", ["id", "problem", "tags"])):
+testproblemtp = namedtuple("TestProblem", ["problemID", "problem", "tags"])
+class TestProblem(testproblemtp):
     """Expands the Problem class to contain extra details relevant to the testing architecture.
 
     Attributes
@@ -527,7 +530,8 @@ class TestProblem(namedtuple("TestProblem", ["id", "problem", "tags"])):
             sys.path.insert(0, problemDir)
         try:
             problemModule = __import__(fileID)
-        except Exception as e:
+            print(problemModule.problems)
+        except Exception as e: # pragma: no cover
             warn("Could not import file " + fileID)
             print(e)
             return []
@@ -541,8 +545,8 @@ class TestProblem(namedtuple("TestProblem", ["id", "problem", "tags"])):
                 problems = getattr(problemModule, "problems")
                 for problemDict in problems:
                     foundProblems.append(cls.processProblemDict(**problemDict))
-
-        if len(foundProblems) == 0:
+        print(foundProblems)
+        if len(foundProblems) == 0: # pragma: no cover
             warn(fileID + " contains no problem objects.")
         return foundProblems
 
@@ -567,9 +571,7 @@ class TestProblem(namedtuple("TestProblem", ["id", "problem", "tags"])):
         TestFramework.TestProblem object.
         """
         return cls(problemDict["problemID"],
-                   problemDict["problem"],
-                   cls.get_cone_types(problemDict["problem"])
-               )
+                   problemDict["problem"])
 
 
     @staticmethod
@@ -618,8 +620,8 @@ TestProblem.__new__.__defaults__ = (None, None, None)
 
 
 
-
-class SolverConfiguration(namedtuple("SolverConfiguration", ["id", "config"])):
+solverconfigurationtp = namedtuple("SolverConfiguration", ["configID", "config"])
+class SolverConfiguration(solverconfigurationtp):
     """An object for managing the configuration of the cvxpy solver.
 
     Attributes
@@ -668,16 +670,17 @@ class SolverConfiguration(namedtuple("SolverConfiguration", ["id", "config"])):
         if configDir not in sys.path:
             sys.path.insert(0, configDir)
         configObj = __import__(configID)
-        if configObj.solver in cvx.installed_solvers():
-            return cls(configID, **configObj.config)
+        print(configObj.config)
+        if configObj.config["solver"] in cvx.installed_solvers():
+            return cls(configID, configObj.config)
         else:
             return None
 
 SolverConfiguration.__new__.__defaults__ = (None, None)
 
 
-
-class TestInstance(namedtuple("TestInstance", ["testproblem", "solverconfig"])):
+testinstancetp = namedtuple("TestInstance", ["testproblem", "solverconfig"])
+class TestInstance(testinstancetp):
     """An object for managing the data collection for a particular problem instance and
     a particular solver configuration.
 
@@ -700,21 +703,21 @@ class TestInstance(namedtuple("TestInstance", ["testproblem", "solverconfig"])):
             A TestResults instance with the results of running this instance.
         """
         problem = self.testproblem.problem
-        results = TestResults(problemID=self.testproblem.id,
-                              configID=self.config.id,
+        results = TestResults(problemID=self.testproblem.problemID,
+                              configID=self.config.configID,
                               instancehash=hash(self))
         # Record problem size metrics first:
         results.size_metrics = problem.size_metrics
 
         try:
             start = time.time() # Time the solve
-            print("starting {} with config {}".format(self.testproblem.id, self.config.id))
+            print("starting {} with config {}".format(self.testproblem.problemID, self.config.configID))
             problem.solve(solver=self.config.solver, verbose=self.config.verbose, **self.config.kwargs)
-            print("finished solve for {} with config {}".format(self.testproblem.id, self.config.id))
+            print("finished solve for {} with config {}".format(self.testproblem.problemID, self.config.configID))
             if problem.solver_stats.solve_time is not None:
                 results.solve_time = problem.solver_stats.solve_time
             else:
-                warn(self.config.id + " did not report a solve time for " + self.testproblem.id)
+                warn(self.config.configID + " did not report a solve time for " + self.testproblem.problemID)
                 results.solve_time = time.time() - start
             if problem.solver_stats.setup_time is not None:
                 results.setup_time = problem.solver_stats.setup_time
@@ -728,16 +731,16 @@ class TestInstance(namedtuple("TestInstance", ["testproblem", "solverconfig"])):
             # Configuration could not solve the given problem
             print(("failure solving {} " + 
                    "with config {} " +
-                   "in {} sec.").format(self.testproblem.id, 
-                                        self.config.id,
+                   "in {} sec.").format(self.testproblem.problemID, 
+                                        self.config.configID,
                                         round(time.time()-start, 1)))
             return results
 
         # Record residual gross stats:
         results.avg_abs_resid, results.max_resid = TestResults.compute_residual_stats(problem)
-        print("computed stats for {} with config {}".format(self.testproblem.id, self.config.id))
+        print("computed stats for {} with config {}".format(self.testproblem.problemID, self.config.configID))
 
-        print("finished {} with config {} in {} sec.".format(self.testproblem.id, self.config.id, round(time.time()-start, 1)))
+        print("finished {} with config {} in {} sec.".format(self.testproblem.problemID, self.config.configID, round(time.time()-start, 1)))
         return results
 
     def __eq__(self, other):
@@ -753,12 +756,12 @@ class TestInstance(namedtuple("TestInstance", ["testproblem", "solverconfig"])):
 TestInstance.__new__.__defaults__ = (None, None)
 
 
-
-class TestResults(namedtuple("TestResults", 
+testresultstp = namedtuple("TestResults", 
     ["problemID", "configID", "instancehash",
      "solve_time", "setup_time", "num_iters",
      "status", "opt_val", "avg_abs_resid", "max_resid",
-     "size_metrics"])):
+     "size_metrics"])
+class TestResults(testresultstp):
     """Holds the results of running a test instance.
 
     Attributes

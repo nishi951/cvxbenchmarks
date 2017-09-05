@@ -24,8 +24,8 @@ def mock_testinstance():
         instance = MagicMock(name="testinstance_{}_{}".format(problem, config))
         instance.run.return_value = t.TestResults(problem, config)
         instance.__hash__.return_value = hash((problem, config))
-        instance.testproblem.id = problem
-        instance.config.id = config
+        instance.testproblem.problemID = problem
+        instance.config.configID = config
         return instance # a mocked instance of class TestInstance
     testinstance.side_effect = init_side_effect
     return testinstance
