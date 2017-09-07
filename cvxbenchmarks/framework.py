@@ -52,8 +52,6 @@ def worker(problemDir, configDir, work_queue, done_queue):
     it might become infeasible to pass them directly to the workers via 
     queues. Instead we pass just the file paths and let the worker
     read the problem directly into its own memory space. 
-
-    To return the result, we need to 
     """
     while True:
         problemID, configID = work_queue.get()
@@ -64,9 +62,9 @@ def worker(problemDir, configDir, work_queue, done_queue):
             done_queue.put(STOP)
             break
         testproblemList = TestProblem.get_all_from_file(problemID, problemDir)
-        config = SolverConfiguration.from_file(configID, configDir)
+        solverconfig = SolverConfiguration.from_file(configID, configDir)
         for testproblem in testproblemList:
-            test_instance = TestInstance(testproblem, config)
+            test_instance = TestInstance(testproblem, solverconfig)
             result = test_instance.run()
             done_queue.put(result)
     return 
@@ -114,18 +112,18 @@ class TestFramework(object):
     """
 
     def __init__(self, problemDir, configDir, 
-                 problems=None, configs=None, cacheFile="cache.pkl", 
+                 testproblems=None, solverconfigs=None, cacheFile="cache.pkl", 
                  parallel=False, tags=None, instances=None, results=None):
         self.problemDir = problemDir
         self.configDir = configDir
-        if problems is None:
-            self.problems = []
+        if testproblems is None:
+            self.testproblems = []
         else:
-            self.problems = problems
-        if configs is None:
-            self.configs = []
+            self.testproblems = testproblems
+        if solverconfigs is None:
+            self.solverconfigs = []
         else:
-            self.configs = configs
+            self.solverconfigs = solverconfigs
         self.cacheFile = cacheFile
 
         # Runtime options
@@ -147,7 +145,7 @@ class TestFramework(object):
 
     def load_problem_file(self, fileID):
         """Loads a single problem file and appends all problems
-        in it to self.problems.
+        in it to self.testproblems.
 
         Parameters
         ----------
@@ -156,11 +154,11 @@ class TestFramework(object):
             containing the problem should be in the format <fileID>.py.
             <fileID>.py can also contain a list of problems.
         """
-        self.problems.extend(TestProblem.get_all_from_file(fileID, self.problemDir))
+        self.testproblems.extend(TestProblem.get_all_from_file(fileID, self.problemDir))
 
     def preload_all_problems(self):
         """Loads all the problems in self.problemDir and adds them to 
-        self.test_problems.
+        self.testproblems.
         """
         for _, _, filenames in os.walk(self.problemDir):
             for filename in filenames:
@@ -178,14 +176,14 @@ class TestFramework(object):
             loaded. File containing the configuration should be in the form 
             <configID>.py.
         """
-        config = SolverConfiguration.from_file(configID, self.configDir)
-        if config is not None:
-            self.configs.append(config)
+        solverconfig = SolverConfiguration.from_file(configID, self.configDir)
+        if solverconfig is not None:
+            self.solverconfigs.append(solverconfig)
         else:
             warn(UserWarning("{} configuration specified but not installed.".format(configID)))
 
     def preload_all_configs(self):
-        """Loads all the configs in self.configDir and adds them to self.configs.
+        """Loads all the configs in self.configDir and adds them to self.solverconfigs.
         """
         for _, _, filenames in os.walk(self.configDir):
             for filename in filenames:
@@ -196,9 +194,9 @@ class TestFramework(object):
     def generate_test_instances(self):
         """Generates a test problem for every pair of (problem, config).
         """
-        for problem in self.problems:
-            for config in self.configs:
-                self.instances.append(TestInstance(problem, config))
+        for testproblem in self.testproblems:
+            for solverconfig in self.solverconfigs:
+                self.instances.append(TestInstance(testproblem, solverconfig))
 
     def clear_cache(self): # pragma: no cover
         """Clear the cache used to store TestResults
@@ -242,7 +240,7 @@ class TestFramework(object):
                         self.results.append(cachedResults[instancehash])
                         print(("Retrieved instance result ({}, {}) " +
                                "from cache.").format(instance.testproblem.problemID,
-                                                     instance.config.configID))
+                                                     instance.solverconfig.configID))
                     else:
                         # Add this result to the cache
                         result = instance.run()
@@ -289,13 +287,13 @@ class TestFramework(object):
                     else:
                         # Add this result to the cache
                         print(instance.testproblem.problemID)
-                        print(instance.config.configID)
-                        work_queue.put((instance.testproblem.problemID, instance.config.configID))
+                        print(instance.solverconfig.configID)
+                        work_queue.put((instance.testproblem.problemID, instance.solverconfig.configID))
 
         else:
             for instance in self.instances:
-                print((instance.testproblem.problemID, instance.config.configID))
-                work_queue.put((instance.testproblem.problemID, instance.config.configID))
+                print((instance.testproblem.problemID, instance.solverconfig.configID))
+                work_queue.put((instance.testproblem.problemID, instance.solverconfig.configID))
 
         for w in range(workers):
             p = multiprocessing.Process(target=worker,
@@ -356,15 +354,6 @@ class TestFramework(object):
         problemIDs = [result.problemID for result in self.results]
         configIDs = [result.configID for result in self.results]
 
-        # Make a dummy TestResults instance to generate labels:
-        # dummy = TestResults(None)
-        # attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
-        # labels = [label[0] for label in attributes if not(label[0].startswith('__') and label[0].endswith('__'))]
-        # Unpack size_metrics label with another dummy
-        # dummy = cvx.Problem(cvx.Minimize(cvx.Variable())).size_metrics
-        # attributes = inspect.getmembers(dummy, lambda a: not(inspect.isroutine(a)))
-        # size_metrics_labels = [label[0] for label in attributes if not(label[0].startswith('__') and \
-                                                                       # label[0].endswith('__'))]
         labels = []
         labels.extend(TestResults._fields)
         labels.extend(SizeMetrics._fields)    
@@ -504,8 +493,12 @@ class TestProblem(testproblemtp):
         the required solver capabilities to solve this problem.
     """
     def __new__(cls, problemID, problem):
-        self = super(TestProblem, cls).__new__(cls, problemID, problem, cls.get_cone_types(problem))
-        return self
+        try:
+            tags = cls.get_cone_types(problem)
+        except:
+            tags = None
+        return super(TestProblem, cls).__new__(cls, problemID, problem, tags)
+
 
     @classmethod
     def get_all_from_file(cls, fileID, problemDir):
@@ -544,7 +537,7 @@ class TestProblem(testproblemtp):
             if problemList in [name for name in dir(problemModule)]:
                 problems = getattr(problemModule, "problems")
                 for problemDict in problems:
-                    foundProblems.append(cls.processProblemDict(**problemDict))
+                    foundProblems.append(cls.process_problem_dict(**problemDict))
         print(foundProblems)
         if len(foundProblems) == 0: # pragma: no cover
             warn(fileID + " contains no problem objects.")
@@ -552,7 +545,7 @@ class TestProblem(testproblemtp):
 
 
     @classmethod
-    def processProblemDict(cls, **problemDict):
+    def process_problem_dict(cls, **problemDict):
         """Unpacks a problem dictionary object of the form:
         {
             "problemID": problemID,
@@ -670,10 +663,15 @@ class SolverConfiguration(solverconfigurationtp):
         if configDir not in sys.path:
             sys.path.insert(0, configDir)
         configObj = __import__(configID)
-        print(configObj.config)
-        if configObj.config["solver"] in cvx.installed_solvers():
-            return cls(configID, configObj.config)
-        else:
+        try:
+            print(cvx.installed_solvers())
+            print(configObj.config["solver"])
+            if configObj.config["solver"] in cvx.installed_solvers():
+                return cls(configID, configObj.config)
+            else:
+                return cls()
+        except: # pragma: no cover
+            warn("Could not import configuration: " + configID)
             return None
 
 SolverConfiguration.__new__.__defaults__ = (None, None)
@@ -703,45 +701,48 @@ class TestInstance(testinstancetp):
             A TestResults instance with the results of running this instance.
         """
         problem = self.testproblem.problem
-        results = TestResults(problemID=self.testproblem.problemID,
-                              configID=self.config.configID,
-                              instancehash=hash(self))
+        problemID= self.testproblem.problemID
+        configID = self.solverconfig.configID
+        instancehash = hash(self)
         # Record problem size metrics first:
-        results.size_metrics = problem.size_metrics
+        size_metrics = problem.size_metrics
 
         try:
             start = time.time() # Time the solve
-            print("starting {} with config {}".format(self.testproblem.problemID, self.config.configID))
-            problem.solve(solver=self.config.solver, verbose=self.config.verbose, **self.config.kwargs)
-            print("finished solve for {} with config {}".format(self.testproblem.problemID, self.config.configID))
+            print("starting {} with config {}".format(self.testproblem.problemID, self.solverconfig.configID))
+            problem.solve(**self.solverconfig.config)
+            print("finished solve for {} with config {}".format(self.testproblem.problemID, self.solverconfig.configID))
             if problem.solver_stats.solve_time is not None:
-                results.solve_time = problem.solver_stats.solve_time
+                solve_time = problem.solver_stats.solve_time
             else:
-                warn(self.config.configID + " did not report a solve time for " + self.testproblem.problemID)
-                results.solve_time = time.time() - start
-            if problem.solver_stats.setup_time is not None:
-                results.setup_time = problem.solver_stats.setup_time
-            if problem.solver_stats.num_iters is not None:
-                results.num_iters = problem.solver_stats.num_iters
-
-            results.status = problem.status
-            results.opt_val = problem.value
+                warn(self.solverconfig.configID + " did not report a solve time for " + self.testproblem.problemID)
+                solve_time = time.time() - start
+            setup_time = problem.solver_stats.setup_time
+            num_iters = problem.solver_stats.num_iters
+            status = problem.status
+            opt_val = problem.value
         except Exception as e:
             print(e)
             # Configuration could not solve the given problem
             print(("failure solving {} " + 
                    "with config {} " +
-                   "in {} sec.").format(self.testproblem.problemID, 
-                                        self.config.configID,
+                   "in {} sec.").format(problemID, 
+                                        configID,
                                         round(time.time()-start, 1)))
-            return results
+            return t.TestResults(problemID=problemID, configID=configID, 
+                                 instancehash=instancehash, size_metrics=size_metrics)
 
         # Record residual gross stats:
-        results.avg_abs_resid, results.max_resid = TestResults.compute_residual_stats(problem)
-        print("computed stats for {} with config {}".format(self.testproblem.problemID, self.config.configID))
+        avg_abs_resid, max_resid = TestResults.compute_residual_stats(problem)
+        print("computed stats for {} with config {}".format(problemID, configID))
 
-        print("finished {} with config {} in {} sec.".format(self.testproblem.problemID, self.config.configID, round(time.time()-start, 1)))
-        return results
+        print("finished {} with config {} in {} sec.".format(problemID, configID, round(time.time()-start, 1)))
+        return t.TestResults(problemID=problemID, configID=configID,
+                             instancehash=instancehash, solve_time=solve_time,
+                             setup_time=setup_time, num_iters=num_iters,
+                             status=status, opt_val=opt_val,
+                             avg_abs_resid=avg_abs_resid, max_resid=max_resid,
+                             size_metrics=size_metrics)
 
     def __eq__(self, other):
         return str(self) == str(other)

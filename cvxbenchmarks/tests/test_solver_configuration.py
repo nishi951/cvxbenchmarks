@@ -19,6 +19,15 @@ def config_dict():
     }
     return config_dict
 
+@pytest.fixture
+def config_dict_not_installed():
+    config_dict_not_installed = {
+        "solver": "not_installed",
+        "verbose": False,
+        "arg": 1.0
+    }
+    return config_dict_not_installed
+
 @patch("cvxbenchmarks.framework.cvx.installed_solvers")
 def test_solver_configuration_from_file(mock_installed_solvers, config_dict):
     mock_installed_solvers.return_value = ["solver"]
@@ -29,12 +38,26 @@ def test_solver_configuration_from_file(mock_installed_solvers, config_dict):
             config = t.SolverConfiguration.from_file("configID", "configDir")
             assert config.configID == "configID"
             assert config.config == config_dict
+
     else: # Python 3.x
         with patch("builtins.__import__", mock_import):
             config = t.SolverConfiguration.from_file("configID", "configDir")
             assert config.configID == "configID"
             assert config.config == config_dict
 
+@patch("cvxbenchmarks.framework.cvx.installed_solvers")
+def test_solver_configuration_from_file_not_installed(mock_installed_solvers, config_dict_not_installed):
+    mock_installed_solvers.return_value = ["solver"]
+    mock_import = MagicMock()
+    mock_import.return_value = MagicMock(name="configModule", config=config_dict_not_installed)
+    if sys.version_info[0] < 3: # Python 2.x
+        with patch("__builtin__.__import__", mock_import):
+            config = t.SolverConfiguration.from_file("configID", "configDir")
+            assert config.configID is None
+            assert config.config is None
 
-
-
+    else: # Python 3.x
+        with patch("builtins.__import__", mock_import):
+            config = t.SolverConfiguration.from_file("configID", "configDir")
+            assert config.configID is None
+            assert config.config is None

@@ -25,7 +25,7 @@ def mock_testinstance():
         instance.run.return_value = t.TestResults(problem, config)
         instance.__hash__.return_value = hash((problem, config))
         instance.testproblem.problemID = problem
-        instance.config.configID = config
+        instance.solverconfig.configID = config
         return instance # a mocked instance of class TestInstance
     testinstance.side_effect = init_side_effect
     return testinstance
@@ -56,8 +56,8 @@ def nondefault_parameters(request):
     return {
         "problemDir": "pdir2",
         "configDir": "cdir2",
-        "problems": ["p1", "p2", "p3"],
-        "configs": ["c1", "c2", "c3"],
+        "testproblems": ["p1", "p2", "p3"],
+        "solverconfigs": ["c1", "c2", "c3"],
         "cacheFile": "cache2.pkl",
         "parallel": True,
         "tags": ["SOCP", "SDP"],
@@ -101,8 +101,8 @@ def test_testframework_init(default_parameters, nondefault_parameters):
     framework1 = t.TestFramework(**default_parameters)
     assert framework1.problemDir == "pdir1"
     assert framework1.configDir == "cdir1"
-    assert framework1.problems == []
-    assert framework1.configs == []
+    assert framework1.testproblems == []
+    assert framework1.solverconfigs == []
     assert framework1.cacheFile == "cache.pkl"
     assert framework1.parallel == False
     assert framework1.tags == []
@@ -112,8 +112,8 @@ def test_testframework_init(default_parameters, nondefault_parameters):
     framework2 = t.TestFramework(**nondefault_parameters)
     assert framework2.problemDir == "pdir2"
     assert framework2.configDir == "cdir2"
-    assert framework2.problems == ["p1", "p2", "p3"]
-    assert framework2.configs == ["c1", "c2", "c3"]
+    assert framework2.testproblems == ["p1", "p2", "p3"]
+    assert framework2.solverconfigs == ["c1", "c2", "c3"]
     assert framework2.cacheFile == "cache2.pkl"
     assert framework2.parallel == True
     assert framework2.tags == ["SOCP", "SDP"]
@@ -127,11 +127,11 @@ def test_testframework_load_problem_file(mock_get_all_from_file,
     mock_get_all_from_file.return_value = ["problem1", "problem2"]
     framework1 = t.TestFramework(**default_parameters)
     framework1.load_problem_file("test_problem")
-    assert framework1.problems == ["problem1", "problem2"]
+    assert framework1.testproblems == ["problem1", "problem2"]
 
     framework2 = t.TestFramework(**nondefault_parameters)
     framework2.load_problem_file("test_problem")
-    assert framework2.problems == ["p1", "p2", "p3"] + ["problem1", "problem2"]
+    assert framework2.testproblems == ["p1", "p2", "p3"] + ["problem1", "problem2"]
 
 @patch("cvxbenchmarks.framework.os.walk")
 @patch("cvxbenchmarks.framework.TestFramework.load_problem_file")
@@ -153,11 +153,11 @@ def test_testframework_load_config(mock_from_file,
     mock_from_file.side_effect = ["config1", "config2", None]
     framework1 = t.TestFramework(**default_parameters)
     framework1.load_config("configID1")
-    assert framework1.configs == ["config1"]
+    assert framework1.solverconfigs == ["config1"]
     framework1.load_config("configID2")
-    assert framework1.configs == ["config1", "config2"]
+    assert framework1.solverconfigs == ["config1", "config2"]
     framework1.load_config("configID_None")
-    assert framework1.configs == ["config1", "config2"]
+    assert framework1.solverconfigs == ["config1", "config2"]
 
 @patch("cvxbenchmarks.framework.os.walk")
 @patch("cvxbenchmarks.framework.TestFramework.load_config")
@@ -177,8 +177,8 @@ def test_testframework_generate_test_instances(default_parameters):
     problems = ["prob1", "prob2"]
     configs = ["config1", "config2"]
     framework1 = t.TestFramework(**default_parameters)
-    framework1.problems = problems
-    framework1.configs = configs
+    framework1.testproblems = problems
+    framework1.solverconfigs = configs
     framework1.generate_test_instances()
     assert framework1.instances == [t.TestInstance("prob1", "config1"),
                                     t.TestInstance("prob1", "config2"),
@@ -224,8 +224,8 @@ def test_testframework_solve_all_no_cache(mock_testinstance,
                                  ):
     # Test without cache
     framework1 = t.TestFramework(**default_parameters)
-    framework1.problems = ["prob1", "prob2"]
-    framework1.configs = ["config1", "config2"]
+    framework1.testproblems = ["prob1", "prob2"]
+    framework1.solverconfigs = ["config1", "config2"]
 
     framework1.solve_all(use_cache = False)
     results = [("prob1", "config1"),
@@ -254,8 +254,8 @@ def test_testframework_solve_all_cache(mock_testinstance,
     m = mock_open()
 
     framework2 = t.TestFramework(**default_parameters)
-    framework2.problems = ["prob1", "prob2"]
-    framework2.configs = ["config1", "config2"]
+    framework2.testproblems = ["prob1", "prob2"]
+    framework2.solverconfigs = ["config1", "config2"]
     results = [("prob1", "config1"),
                ("prob2", "config1"),
                ("prob1", "config2"),
@@ -282,8 +282,8 @@ def test_testframework_solve_all_parallel_no_cache(mock_testinstance,
                                  default_parameters):
     # Test without cache
     framework1 = t.TestFramework(**default_parameters)
-    framework1.problems = ["prob1", "prob2"]
-    framework1.configs = ["config1", "config2"]
+    framework1.testproblems = ["prob1", "prob2"]
+    framework1.solverconfigs = ["config1", "config2"]
 
     framework1.solve_all_parallel(use_cache = False)
     results = [("prob1", "config1"),
@@ -314,8 +314,8 @@ def test_testframework_solve_all_parallel_cache(mock_testinstance,
     m = mock_open()
 
     framework2 = t.TestFramework(**default_parameters)
-    framework2.problems = ["prob1", "prob2"]
-    framework2.configs = ["config1", "config2"]
+    framework2.testproblems = ["prob1", "prob2"]
+    framework2.solverconfigs = ["config1", "config2"]
     results = [("prob1", "config1"),
                ("prob2", "config1"),
                ("prob1", "config2"),
