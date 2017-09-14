@@ -60,9 +60,9 @@ class Index(object):
                     print("\t{}".format(problemID))
                     problems = TestProblem.get_all_from_file(problemID, problemDir)
                     for testproblem in problems:
-                        next = pd.Series(testproblem.problem.size_metrics.__dict__, name = problemID)
+                        next = pd.Series(testproblem.problem.size_metrics._asdict(), name = problemID)
                         # Add cone types
-                        next.loc["tags"] = TestProblem.check_cone_types(testproblem.problem)
+                        next.loc["tags"] = TestProblem.get_cone_types(testproblem.problem)
                         problem_list.append(next)
         problems = pd.DataFrame(problem_list)
         return problems
@@ -81,35 +81,35 @@ class Index(object):
         with open(filename, "w") as f:
             f.write(tabulate(self.problems, headers = "keys", tablefmt = "psql"))
 
-    def write_latex(self,
-                    keys = ("num_scalar_variables",
-                            "num_scalar_eq_constr",
-                            "num_scalar_leq_constr",
-                            "tags"),
-                    filename = "index.tex"):
-        """Writes a latex tabular snippet suitable for posting in a latex document.
+    # def write_latex(self,
+    #                 keys = ("num_scalar_variables",
+    #                         "num_scalar_eq_constr",
+    #                         "num_scalar_leq_constr",
+    #                         "tags"),
+    #                 filename = "index.tex"):
+    #     """Writes a latex tabular snippet suitable for posting in a latex document.
 
-        Parameters
-        ----------
-        keys : list
-            A list of the keys to put in the table. Defaults to:
-            ["num_scalar_variables", "num_scalar_eq_constr", "num_scalar_neq_constr"]
-        filename : string
-            The name of the file to write the latex to. Defaults to "index.tex".
-        """
-        with open(filename, "w") as f:
-            f.write("\\begin{figure}[h]\n")
-            f.write("\\centering\n")
-            f.write("\\begin{tabular}{|" + (" c |" * (len(keys) + 1)) + "}\n")
-            # Header
-            f.write("\\hline \n")
-            header = ["ProblemID"] + keys
-            f.write(' & '.join(header) + "\\\\ \n")
-            f.write("\\hline \n")
-            for problem in self.problems.index:
-                values = self.problems.loc[problem, keys].tolist()
-                values = [str(problem)] + [str(value) for value in values]
-                f.write(' & '.join(values) + " \\\\ \n")
-                f.write("\\hline \n")
-            f.write("\\end{tabular}\n")
-            f.write("\\end{figure}\n")
+    #     Parameters
+    #     ----------
+    #     keys : list
+    #         A list of the keys to put in the table. Defaults to:
+    #         ["num_scalar_variables", "num_scalar_eq_constr", "num_scalar_neq_constr"]
+    #     filename : string
+    #         The name of the file to write the latex to. Defaults to "index.tex".
+    #     """
+    #     with open(filename, "w") as f:
+    #         f.write("\\begin{figure}[h]\n")
+    #         f.write("\\centering\n")
+    #         f.write("\\begin{tabular}{|" + (" c |" * (len(keys) + 1)) + "}\n")
+    #         # Header
+    #         f.write("\\hline \n")
+    #         header = ["ProblemID"] + keys
+    #         f.write(' & '.join(header) + "\\\\ \n")
+    #         f.write("\\hline \n")
+    #         for problem in self.problems.index:
+    #             values = self.problems.loc[problem, keys].tolist()
+    #             values = [str(problem)] + [str(value) for value in values]
+    #             f.write(' & '.join(values) + " \\\\ \n")
+    #             f.write("\\hline \n")
+    #         f.write("\\end{tabular}\n")
+    #         f.write("\\end{figure}\n")

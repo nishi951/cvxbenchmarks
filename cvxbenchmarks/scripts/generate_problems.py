@@ -1,11 +1,13 @@
 from cvxbenchmarks.problem_generator import ProblemTemplate
 from cvxbenchmarks.index import Index
+
 import os, re
+from itertools import izip
 
 from cvxbenchmarks.scripts.utils import get_command_line_args
 
 def main(args):
-    template_files = [
+    all_template_files = [
         ("least_squares.j2", "least_squares_params.csv"),
         ("lasso.j2", "lasso_params.csv"),
         ("control.j2", "control_params.csv"),
@@ -47,6 +49,18 @@ def main(args):
     print("Loading parameters from: {}".format(paramDir))
     print("Target directory: {}".format(problemDir))
 
+    if args.templates is not None and args.params is not None:
+        if len(args.templates) == len(args.params):
+            template_files = izip(args.templates, args.params)
+        else:
+            raise RuntimeError(("Argument lists for --templates and --params " + 
+                               "should be the same length."))
+    elif (args.templates is None and args.params is not None) or \
+         (args.templates is not None and args.params is None):
+         raise RuntimeError(("--templates and --params must be specified together."))
+    else:
+        template_files = all_template_files
+
     # Collect problems from template files (1 per template)
     for templateFile, paramFile in template_files:
         # Remove file extension
@@ -65,10 +79,10 @@ def main(args):
     # Generate index file
     index = Index(problemDir)
     index.write()
-    index.write_latex(keys = ["num_scalar_variables",
-                            "num_scalar_eq_constr",
-                            "num_scalar_leq_constr"],
-                      filename="index.tex")
+    # index.write_latex(keys = ["num_scalar_variables",
+    #                         "num_scalar_eq_constr",
+    #                         "num_scalar_leq_constr"],
+    #                   filename="index.tex")
 
 if __name__ == '__main__':
     main(get_command_line_args())

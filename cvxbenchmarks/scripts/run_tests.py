@@ -47,9 +47,9 @@ def main(args):
     # print("Solving all problem instances in parallel...")
     # framework.solve_all_parallel()
     # print("\tDone.")
-    print("\tTime:",str(time.time()-start))
+    print("\tTime: {}".format(str(time.time()-start)))
 
-    print("number of results:", str(len(framework.results)))
+    print("number of results: {}".format(str(len(framework.results))))
 
     # Export results to a pandas panel
     print("exporting results.")

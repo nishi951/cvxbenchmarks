@@ -74,9 +74,18 @@ def get_command_line_args():
     parser.add_argument("--paramDir", type=str, 
                         default="cvxbenchmarks/lib/data/cvxbenchmarks",
                         help=("the directory containing the parameter files."))
-    parser.add_argument("--template-and-params", type=str, nargs=2,
-                        help="specify a template file and a parameter file.")
-    parser.add_argument("--problemDir", type=str, 
+    # parser.add_argument("--template-and-params", type=str, nargs=2,
+    #                     help="specify a template file and a parameter file.")
+    parser.add_argument("--templates", type=str, nargs='+',
+                        help=("a list of templates to render. Specify parameter " +
+                              "files with --params. Each template will be rendered " +
+                              "with the params file in the corresponding position."))
+    parser.add_argument("--params", type=str, nargs='+',
+                        help=("a list of parameter files to use to render templates. " +
+                              "specify template files with --templates. Each template " +
+                              "will be rendered with the params file in the corresponding " +
+                              "position."))
+    parser.add_argument("--problemDir", type=str,
                         default="cvxbenchmarks/problems",
                         help=("the directory containing the (.py) written " +
                         "problems.")) # Also used in run
@@ -103,7 +112,8 @@ def get_command_line_args():
                         help="run the tests in parallel")
 
     # render
-    # --template-and-params
+    # --templates
+    # --params
 
     # view
     parser.add_argument("--stats", type=str, nargs='+',

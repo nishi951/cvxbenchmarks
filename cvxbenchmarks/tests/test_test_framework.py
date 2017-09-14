@@ -340,8 +340,12 @@ def test_testframework_export_results(mock_size_metrics, default_parameters):
                             size_metrics=SizeMetrics(num_scalar_variables=3))
 
     result2 = t.TestResults("prob2", "config2", size_metrics=SizeMetrics(num_scalar_variables=5))
+    result3 = t.TestResults("prob1", "config2", opt_val=0.1, solve_time=2.0,
+                            size_metrics=SizeMetrics(num_scalar_variables=3))
+    result4 = t.TestResults("prob2", "config1", opt_val=-0.1, solve_time=1.5,
+                            size_metrics=SizeMetrics(num_scalar_variables=5))
 
-    framework1.results = [result1, result2]
+    framework1.results = [result1, result2, result3, result4]
 
     results = framework1.export_results()
     assert results.loc[("prob1", "config1"), "opt_val"] == 0.0
@@ -351,6 +355,14 @@ def test_testframework_export_results(mock_size_metrics, default_parameters):
     assert np.isnan(results.loc[("prob2", "config2"), "opt_val"])
     assert np.isnan(results.loc[("prob2", "config2"), "solve_time"])
     assert results.loc[("prob2", "config2"), "num_scalar_variables"] == 5
+
+    assert results.loc[("prob1", "config2"), "opt_val"] == 0.1
+    assert results.loc[("prob1", "config2"), "solve_time"] == 2.0
+    assert results.loc[("prob1", "config2"), "num_scalar_variables"] == 3
+
+    assert results.loc[("prob2", "config1"), "opt_val"] == -0.1
+    assert results.loc[("prob2", "config1"), "solve_time"] == 1.5
+    assert results.loc[("prob2", "config1"), "num_scalar_variables"] == 5
 
 def test_testframework_compute_mosek_error(sample_results):
     results = sample_results.copy()

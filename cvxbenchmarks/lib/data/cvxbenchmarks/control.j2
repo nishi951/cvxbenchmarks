@@ -17,13 +17,14 @@ x_0 = beta*np.random.randn(n,1)
 # Form and solve control problem.
 x = cp.Variable(n, T+1)
 u = cp.Variable(m, T)
-states = []
-for t in range(T):
-    cost = cp.pnorm(u[:,t], 1)
-    constr = [x[:,t+1] == A*x[:,t] + B*u[:,t],
+
+cost = cp.pnorm(u[:,0], 1)
+constr = [x[:,1] == A*x[:,0] + B*u[:,0],
+          cp.norm(u[:,0], 'inf') <= 1]
+for t in range(1,T):
+    cost += cp.pnorm(u[:,t], 1)
+    constr += [x[:,t+1] == A*x[:,t] + B*u[:,t],
               cp.norm(u[:,t], 'inf') <= 1]
-    states.append(cp.Problem(cp.Minimize(cost), constr))
-# sums problem objectives and concatenates constraints.
-prob = sum(states)
-prob.constraints += [x[:,T] == 0, x[:,0] == x_0]
+constr += [x[:,T] == 0, x[:,0] == x_0]
+prob = cp.Problem(cp.Minimize(cost), constr)
 {% endblock %}

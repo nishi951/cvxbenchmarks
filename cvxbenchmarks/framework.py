@@ -1,7 +1,7 @@
 import numpy as np
 import multiprocessing
 import time
-import os, sys, inspect, glob
+import os, sys, inspect, glob, re
 import pandas as pd
 import math
 
@@ -20,6 +20,7 @@ from cvxpy.constraints.bool_constr import BoolConstr
 # SizeMetrics
 from cvxpy.problems.problem import SizeMetrics
 
+
 from warnings import warn
 
 STOP = "STOP" # Poison pill for parallel solve subroutine.
@@ -32,6 +33,13 @@ STOP = "STOP" # Poison pill for parallel solve subroutine.
 # sys.path.insert(0, "/Users/mark/Documents/Stanford/reu2016/cvxpy")
 import cvxpy as cvx
 print(cvx)
+
+# Variable Regular expression for hashing:
+from cvxpy.settings import VAR_PREFIX, PARAM_PREFIX
+VARSUB = re.compile(VAR_PREFIX + "[0-9]+")
+PARAMSUB = re.compile(PARAM_PREFIX + "[0-9]+")
+
+
 
 
 def worker(problemDir, configDir, work_queue, done_queue): 
@@ -230,24 +238,29 @@ class TestFramework(object):
             try:
                 with open(self.cacheFile, "rb") as f:
                     cachedResults = pkl.load(f)
-            except: # pragma: no cover
+            except Exception as e: # pragma: no cover
+                print(e)
                 print("Creating new cache file: {}".format(self.cacheFile))
-            with open(self.cacheFile, "wb") as f: # Overwrite previous cache
-                for instance in self.instances:
-                    instancehash = hash(instance)
-                    if instancehash in cachedResults:
-                        # Retrieve TestResult from the results dictionary:
-                        self.results.append(cachedResults[instancehash])
-                        print(("Retrieved instance result ({}, {}) " +
-                               "from cache.").format(instance.testproblem.problemID,
-                                                     instance.solverconfig.configID))
-                    else:
-                        # Add this result to the cache
-                        result = instance.run()
-                        self.results.append(result)
-                        cachedResults[instancehash] = result
-                # Write the modified dictionary back to the cache file.
-                pkl.dump(cachedResults, f)
+                self.clear_cache()
+
+            for instance in self.instances:
+                instancehash = hash(instance)
+                if instancehash in cachedResults:
+                    # Retrieve TestResult from the results dictionary:
+                    self.results.append(cachedResults[instancehash])
+                    print(("Retrieved instance result ({}, {}) " +
+                           "from cache.").format(instance.testproblem.problemID,
+                                                 instance.solverconfig.configID))
+                else:
+                    # Add this result to the cache
+                    result = instance.run()
+                    self.results.append(result)
+                    cachedResults[instancehash] = result
+                    # Write the modified dictionary back to the cache file.
+
+                with open(self.cacheFile, "wb") as f: # Overwrite previous cache
+                    pkl.dump(cachedResults, f)
+
         else:
             for instance in self.instances:
                 self.results.append(instance.run())
@@ -286,13 +299,10 @@ class TestFramework(object):
                         self.results.append(cachedResults[instancehash])
                     else:
                         # Add this result to the cache
-                        print(instance.testproblem.problemID)
-                        print(instance.solverconfig.configID)
                         work_queue.put((instance.testproblem.problemID, instance.solverconfig.configID))
 
         else:
             for instance in self.instances:
-                print((instance.testproblem.problemID, instance.solverconfig.configID))
                 work_queue.put((instance.testproblem.problemID, instance.solverconfig.configID))
 
         for w in range(workers):
@@ -317,14 +327,11 @@ class TestFramework(object):
                     print("Processes left: {}".format(str(processes_left)))
                 else:
                     self.results.append(result)
-                # print "received!"
+                    if use_cache: # Add new cached result to the cache.
+                        with open(self.cacheFile, "wb") as f:
+                            cachedResults[result.instancehash] = result
+                            pkl.dump(cachedResults, f)
             time.sleep(0.5) # Wait for processes to run.
-
-        if use_cache: # Add all results to the cache.
-            with open(self.cacheFile, "wb") as f:
-                for result in self.results:        
-                    cachedResults[result.instancehash] = result
-                pkl.dump(cachedResults, f)
 
         for p in processes:
             print("process {} exited with code {}".format(p,p.exitcode))
@@ -351,8 +358,8 @@ class TestFramework(object):
             output.loc[("basis_pursuit_0", "scs_config"), "solve_time"]
 
         """
-        problemIDs = [result.problemID for result in self.results]
-        configIDs = [result.configID for result in self.results]
+        problemIDs = list(set([result.problemID for result in self.results]))
+        configIDs = list(set([result.configID for result in self.results]))
 
         labels = []
         labels.extend(TestResults._fields)
@@ -364,6 +371,7 @@ class TestFramework(object):
 
         # output = pd.Panel(items=labels, major_axis=problemIDs, minor_axis=configIDs)
         multiindex = pd.MultiIndex.from_product([problemIDs, configIDs], names=["problems", "configs"])
+
         output = pd.DataFrame(index=multiindex, columns=labels)
         output.columns.names = ["stats"]
 
@@ -377,6 +385,7 @@ class TestFramework(object):
 
         # Compute Statistics
         output.fillna(value=np.nan, inplace=True)
+        output.sort_index(inplace=True)
         try:
             TestFramework.compute_mosek_error(output, "opt_val", "mosek_config")
         except (KeyError): # pragma: no cover
@@ -523,7 +532,6 @@ class TestProblem(testproblemtp):
             sys.path.insert(0, problemDir)
         try:
             problemModule = __import__(fileID)
-            print(problemModule.problems)
         except Exception as e: # pragma: no cover
             warn("Could not import file " + fileID)
             print(e)
@@ -538,7 +546,6 @@ class TestProblem(testproblemtp):
                 problems = getattr(problemModule, "problems")
                 for problemDict in problems:
                     foundProblems.append(cls.process_problem_dict(**problemDict))
-        print(foundProblems)
         if len(foundProblems) == 0: # pragma: no cover
             warn(fileID + " contains no problem objects.")
         return foundProblems
@@ -609,6 +616,9 @@ class TestProblem(testproblemtp):
         """
         return NotImplemented
 
+    def __repr__(self):
+        return str(self.problemID) + " " + str(self.problem)
+
 TestProblem.__new__.__defaults__ = (None, None, None)
 
 
@@ -664,12 +674,10 @@ class SolverConfiguration(solverconfigurationtp):
             sys.path.insert(0, configDir)
         configObj = __import__(configID)
         try:
-            print(cvx.installed_solvers())
-            print(configObj.config["solver"])
             if configObj.config["solver"] in cvx.installed_solvers():
                 return cls(configID, configObj.config)
             else:
-                return cls()
+                return None
         except: # pragma: no cover
             warn("Could not import configuration: " + configID)
             return None
@@ -729,7 +737,7 @@ class TestInstance(testinstancetp):
                    "in {} sec.").format(problemID, 
                                         configID,
                                         round(time.time()-start, 1)))
-            return t.TestResults(problemID=problemID, configID=configID, 
+            return TestResults(problemID=problemID, configID=configID, 
                                  instancehash=instancehash, size_metrics=size_metrics)
 
         # Record residual gross stats:
@@ -737,7 +745,7 @@ class TestInstance(testinstancetp):
         print("computed stats for {} with config {}".format(problemID, configID))
 
         print("finished {} with config {} in {} sec.".format(problemID, configID, round(time.time()-start, 1)))
-        return t.TestResults(problemID=problemID, configID=configID,
+        return TestResults(problemID=problemID, configID=configID,
                              instancehash=instancehash, solve_time=solve_time,
                              setup_time=setup_time, num_iters=num_iters,
                              status=status, opt_val=opt_val,
@@ -750,7 +758,12 @@ class TestInstance(testinstancetp):
     def __hash__(self):
         old_options = np.get_printoptions()
         np.set_printoptions(threshold=10, precision=3) # Shorten the string representation.
-        digest = int(hashlib.sha256(str(self).encode("utf-16")).hexdigest(), 16)
+        # Replace var<id> with just var and param<id> with just param
+        problemString = str(self)
+        problemString = re.sub(VARSUB, "var", problemString)
+        problemString = re.sub(PARAMSUB, "param", problemString)
+        digest = int(hashlib.sha256(problemString.encode("utf-16")).hexdigest(), 16)
+        # print(problemString)
         np.set_printoptions(**old_options) # Restore 
         return digest
 
