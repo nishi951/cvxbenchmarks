@@ -1,4 +1,5 @@
 [run]
 omit = 
+    setup.py
     cvxbenchmarks/oldtests/*
     cvxbenchmarks/scripts/*
