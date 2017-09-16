@@ -2,7 +2,6 @@ from cvxbenchmarks.problem_generator import ProblemTemplate
 from cvxbenchmarks.index import Index
 
 import os, re
-from itertools import izip
 
 from cvxbenchmarks.scripts.utils import get_command_line_args
 
@@ -22,7 +21,6 @@ def main(args):
         ("hinge_l2.j2", "hinge_l2_params.csv"),
         ("huber.j2", "huber_params.csv"),
         ("infinite_push.j2", "infinite_push_params.csv"),
-        ("lasso.j2", "lasso_params.csv"),
         ("least_abs_dev.j2", "least_abs_dev_params.csv"),
         ("logreg_l1.j2", "logreg_l1_params.csv"),
         ("max_gaussian.j2", "max_gaussian_params.csv"),
@@ -51,7 +49,7 @@ def main(args):
 
     if args.templates is not None and args.params is not None:
         if len(args.templates) == len(args.params):
-            template_files = izip(args.templates, args.params)
+            template_files = zip(args.templates, args.params)
         else:
             raise RuntimeError(("Argument lists for --templates and --params " + 
                                "should be the same length."))

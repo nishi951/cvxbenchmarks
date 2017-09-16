@@ -53,11 +53,9 @@ def test_solver_configuration_from_file_not_installed(mock_installed_solvers, co
     if sys.version_info[0] < 3: # Python 2.x
         with patch("__builtin__.__import__", mock_import):
             config = t.SolverConfiguration.from_file("configID", "configDir")
-            assert config.configID is None
-            assert config.config is None
+            assert config is None
 
     else: # Python 3.x
         with patch("builtins.__import__", mock_import):
             config = t.SolverConfiguration.from_file("configID", "configDir")
-            assert config.configID is None
-            assert config.config is None
+            assert config is None
