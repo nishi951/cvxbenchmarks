@@ -3,3 +3,5 @@ omit =
     setup.py
     cvxbenchmarks/oldtests/*
     cvxbenchmarks/scripts/*
+    cvxbenchmarks/base.py
+ 
