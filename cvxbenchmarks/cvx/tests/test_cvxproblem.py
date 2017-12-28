@@ -74,16 +74,16 @@ def problems_list(lp_prob, socp_prob, sdp_prob, exp_prob, mip_prob):
 
 
 def test_testproblem_init(problems_list):
-    p1 = CVXProblem(problems_list[0])
-    assert p1.tags == set([s.LP])
-    p2 = CVXProblem(problems_list[1])
-    assert p2.tags == set([s.LP, s.SOCP])
-    p3 = CVXProblem(problems_list[2])
-    assert p3.tags == set([s.LP, s.SOCP, s.SDP])
-    p4 = CVXProblem(problems_list[3])
-    assert p4.tags == set([s.LP, s.EXP])
-    p5 = CVXProblem(problems_list[4])
-    assert p5.tags == set([s.LP, s.MIP])
+    p1 = CVXProblem(**problems_list[0])
+    assert p1.metadata["cone_types"] == set([s.LP])
+    p2 = CVXProblem(**problems_list[1])
+    assert p2.metadata["cone_types"] == set([s.LP, s.SOCP])
+    p3 = CVXProblem(**problems_list[2])
+    assert p3.metadata["cone_types"] == set([s.LP, s.SOCP, s.SDP])
+    p4 = CVXProblem(**problems_list[3])
+    assert p4.metadata["cone_types"] == set([s.LP, s.EXP])
+    p5 = CVXProblem(**problems_list[4])
+    assert p5.metadata["cone_types"] == set([s.LP, s.MIP])
 
 # @patch("cvxbenchmarks.framework.__import__")
 def test_testproblem_get_all_from_file(problems_list):

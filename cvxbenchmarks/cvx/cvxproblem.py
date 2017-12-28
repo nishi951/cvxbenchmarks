@@ -36,16 +36,24 @@ class CVXProblem(Problem):
         - cone_types: A set of solver capabilities required
                       to solve this problem.
                       Possible Values: {LP, SOCP, SDP, EXP, MIP} 
-        - num_variables: The number of variables in the problem.
-        - num_leq_constraints: The number of scalar inequality constraints.
-        - num_eq_constraints: The number of scalar equality constraints.
+        - Also include all the things from cvxpy.SizeMetrics, for example:
+            - num_variables: The number of variables in the problem.
+            - num_leq_constraints: The number of scalar inequality constraints.
+            - num_eq_constraints: The number of scalar equality constraints.
+            - etc.
+
     """
 
-    def __init__(self, problemDict):
-        self.problemID = problemDict["problemID"]
-        self.problem = problemDict["problem"]
-        self.opt_val = problemDict["opt_val"]
-        self.metadata = {"cone_types": self.get_cone_types(self.problem)}
+    def __init__(self, problemID, problem, opt_val=None, metadata=None):
+        self.problemID = problemID
+        self.problem = problem
+        self.opt_val = opt_val
+        if metadata == None:
+            self.metadata = {"cone_types": self.get_cone_types(self.problem)}
+            # print(self.problem.size_metrics.__dict__)
+            self.metadata.update(self.problem.size_metrics.__dict__)
+        else: # pragma: no cover
+            self.metadata = metadata
 
     @classmethod
     def read(cls, fileID, problemDir):
@@ -83,7 +91,7 @@ class CVXProblem(Problem):
             if problemList in [name for name in dir(problemModule)]:
                 problems = getattr(problemModule, "problems")
                 for problemDict in problems:
-                    foundProblems.append(CVXProblem(problemDict))
+                    foundProblems.append(CVXProblem(**problemDict))
         if len(foundProblems) == 0: # pragma: no cover
             warn(fileID + " contains no problem objects.")
         return foundProblems
@@ -129,4 +137,7 @@ class CVXProblem(Problem):
             A dictionary mapping the cone type to the total number of variables constrained to be in that cone.
         """
         return NotImplemented
+
+    def __repr__(self): # pragma: no cover
+        return str(self.problemID) + " " + str(self.problem)
 

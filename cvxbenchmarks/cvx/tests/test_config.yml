@@ -1,3 +1,4 @@
+configID: CONFIGID
 solver: SOLVER
 verbose: true
 eps: 1e-4

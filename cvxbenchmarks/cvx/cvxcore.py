@@ -1,6 +1,19 @@
 from cvxbenchmarks.base import Instance, Results
 
+from cvxpy.problems.solvers.utilities import SOLVERS # For compatibility check
+from cvxpy.error import SolverError
 
+import numpy as np
+
+from collections import namedtuple
+import time
+import re
+import hashlib
+
+# For hashing
+from cvxpy.settings import VAR_PREFIX, PARAM_PREFIX
+VARSUB = re.compile(VAR_PREFIX + "[0-9]+")
+PARAMSUB = re.compile(PARAM_PREFIX + "[0-9]+")
 
 
 class CVXInstance(Instance):
@@ -17,36 +30,31 @@ class CVXInstance(Instance):
     """
 
     def run(self):
-        """Runs the problem instance against the solver configuration.
-
-        1. 
+        """Runs the CVXProblem with the CVXConfig configuration.
 
         Returns
         -------
-        results : cvxbenchmarks.TestResults
-            A TestResults instance with the results of running this instance.
+        results : cvxbenchmarks.CVXResults
+            The results of running this instance.
         """
-        problem = self.problem
-        problemID = self.problemID
-        configID = self.solverconfig.configID
-        instancehash = hash(self)
-        # Record problem size metrics first:
-        size_metrics = problem.size_metrics
-
+        # For convenience:
+        problemID = self.problem.problemID
+        configID = self.config.configID
+        cvxpy_problem = self.problem.problem
         try:
+            print("starting {} with config {}".format(problemID, configID))
             start = time.time() # Time the solve
-            print("starting {} with config {}".format(self.testproblem.problemID, self.solverconfig.configID))
-            problem.solve(**self.config.configure())
-            print("finished solve for {} with config {}".format(self.testproblem.problemID, self.solverconfig.configID))
-            if problem.solver_stats.solve_time is not None:
-                solve_time = problem.solver_stats.solve_time
-            else:
-                warn(self.solverconfig.configID + " did not report a solve time for " + self.testproblem.problemID)
-                solve_time = time.time() - start
-            setup_time = problem.solver_stats.setup_time
-            num_iters = problem.solver_stats.num_iters
-            status = problem.status
-            opt_val = problem.value
+            cvxpy_problem.solve(**self.config.configure())
+            solve_time = time.time() - start
+            print("finished solve for {} with config {}".format(problemID, configID))
+            if cvxpy_problem.solver_stats.solve_time is not None:
+                solve_time = cvxpy_problem.solver_stats.solve_time
+            else: # pragma: no cover
+                warn(configID + " did not report a solve time for " + problemID)
+            setup_time = cvxpy_problem.solver_stats.setup_time
+            num_iters = cvxpy_problem.solver_stats.num_iters
+            status = cvxpy_problem.status
+            opt_val = cvxpy_problem.value
         except Exception as e:
             print(e)
             # Configuration could not solve the given problem
@@ -55,32 +63,46 @@ class CVXInstance(Instance):
                    "in {} sec.").format(problemID, 
                                         configID,
                                         round(time.time()-start, 1)))
-            return TestResults(problemID=problemID, configID=configID, 
-                                 instancehash=instancehash, size_metrics=size_metrics)
+            return CVXResults(problemID=problemID, configID=configID, 
+                                 instancehash=hash(self))
 
         # Record residual gross stats:
-        avg_abs_resid, max_resid = TestResults.compute_residual_stats(problem)
+        avg_abs_resid, max_resid = CVXResults.compute_residual_stats(cvxpy_problem)
         print("computed stats for {} with config {}".format(problemID, configID))
 
         print("finished {} with config {} in {} sec.".format(problemID, configID, round(time.time()-start, 1)))
-        return TestResults(problemID=problemID, configID=configID,
-                             instancehash=instancehash, solve_time=solve_time,
+        return CVXResults(problemID=problemID, configID=configID,
+                             instancehash=hash(self), solve_time=solve_time,
                              setup_time=setup_time, num_iters=num_iters,
                              status=status, opt_val=opt_val,
                              avg_abs_resid=avg_abs_resid, max_resid=max_resid,
-                             size_metrics=size_metrics)
+                         )
 
     def check_compatibility(self):
         """Ensure that the solver specified by the configuration
-        is capable of solving the problem type
-        """
+        is capable of solving the problem type.
 
+        Leverages existing CVXPY functionality.
+        """
+        solver = SOLVERS[self.config.solver_opts["solver"]]
+        try:
+            _, constraints = self.problem.problem.canonicalize()
+            solver.validate_solver(constraints)
+        except SolverError as e:
+            return False
+        return True
 
 
     def __eq__(self, other):
         return str(self) == str(other)
 
     def __hash__(self):
+        """
+        Computes a string representation of the problem (including
+        truncated, reduced-precision versions of all data matrices), replaces
+        various variable names and parameter names, then hashes the resulting
+        string.
+        """
         old_options = np.get_printoptions()
         np.set_printoptions(threshold=10, precision=3) # Shorten the string representation.
         # Replace var<id> with just var and param<id> with just param
@@ -89,18 +111,16 @@ class CVXInstance(Instance):
         problemString = re.sub(PARAMSUB, "param", problemString)
         digest = int(hashlib.sha256(problemString.encode("utf-16")).hexdigest(), 16)
         # print(problemString)
-        np.set_printoptions(**old_options) # Restore 
+        np.set_printoptions(**old_options) # Restore original options
         return digest
 
-TestInstance.__new__.__defaults__ = (None, None)
 
 
-testresultstp = namedtuple("TestResults", 
+cvxresultstp = namedtuple("CVXResultsd", 
     ["problemID", "configID", "instancehash",
      "solve_time", "setup_time", "num_iters",
-     "status", "opt_val", "avg_abs_resid", "max_resid",
-     "size_metrics"])
-class CVXResults(Results, testresultstp):
+     "status", "opt_val", "avg_abs_resid", "max_resid"])
+class CVXResults(Results, cvxresultstp):
     """Holds the results of running a test instance.
 
     Attributes
@@ -127,9 +147,6 @@ class CVXResults(Results, testresultstp):
         The average absolute residual across all scalar problem constraints.
     max_resid : float
         The maximum absolute residual across all scalar problem constraints.
-    size_metrics : cvxpy.SizeMetrics
-        A SizeMetrics object holding stats about the size of the problem.
-
     """
 
     @staticmethod
@@ -173,18 +190,19 @@ class CVXResults(Results, testresultstp):
                 # res is a float
                 n_residuals += 1
                 thismax = np.absolute(res)
-            elif isinstance(res, type(None)):
-                pass
-            else:
+            elif isinstance(res, type(None)): # pragma: no cover
+                continue
+            else: # pragma: no cover
                 print("Unknown residual type: {}".format(type(res)))
+                continue
 
             # Get max absolute residual:
             if max_residual < thismax:
                 max_residual = thismax
-        if n_residuals == 0:
+        if n_residuals == 0: # pragma: no cover
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
 
 # 11 entries:
-TestResults.__new__.__defaults__ = (None, None, None, None, None, None, None, None,
-                                    None, None, None)
+CVXResults.__new__.__defaults__ = (None, None, None, None, None, None, None, None,
+                                    None, None)
