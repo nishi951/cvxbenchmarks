@@ -86,7 +86,7 @@ def test_testproblem_init(problems_list):
     assert p5.metadata["cone_types"] == set([s.LP, s.MIP])
 
 # @patch("cvxbenchmarks.framework.__import__")
-def test_testproblem_get_all_from_file(problems_list):
+def test_read(problems_list):
     mock_import = MagicMock()
     mock_import.return_value = MagicMock(problems=problems_list)
     if sys.version_info[0] < 3: # Python 2.x

@@ -21,18 +21,16 @@ def test_init():
 #############
 # IMPORTANT #
 #############
-# This unit test requries the file test_config.yml, with the following contents:
-#
-# solver: SOLVER
-# verbose: true
-# eps: 1e-4
-#
+# This unit test requries the file tests/test_config.yml.
+
 
 def test_read_and_configure():
-    config1 = CVXConfig.from_file(os.path.join(str(pytest.config.rootdir), 
-                                               "cvxbenchmarks", "cvx", "tests", "test_config.yml"))
-    assert config1.configure() == {"solver": "SOLVER", "eps": 1e-4, "verbose": True}
-    assert config1.configID == "CONFIGID"
+    configs = CVXConfig.read(os.path.join(str(pytest.config.rootdir), 
+                                               "cvxbenchmarks", "cvx", "tests", "configs", "test_config.yml"))
+    assert configs[0].configure() == {"solver": "solver1", "eps": 1e-4, "verbose": True}
+    assert configs[0].configID == "config1"
+    assert configs[1].configure() == {"solver": "solver2", "eps": 1e-4, "verbose": True}
+    assert configs[1].configID == "config2"
 
 
 

@@ -1,0 +1,11 @@
+---
+configID: config1
+solver: solver1
+verbose: true
+eps: 1e-4
+---
+configID: config2
+solver: solver2
+verbose: true
+eps: 1e-4
+...

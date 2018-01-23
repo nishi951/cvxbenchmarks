@@ -10,6 +10,9 @@ import hashlib, pickle as pkl
 from collections import namedtuple
 
 import cvxbenchmarks.settings as s
+from cvxbenchmarks.cvx.cvxproblem import CVXProblem
+from cvxbenchmarks.cvx.cvxconfig import CVXConfig
+from cvxbenchmarks.cvx.cvxcore import CVXInstance, CVXResults
 
 # Constraint types
 from cvxpy.constraints.semidefinite import SDP
@@ -78,68 +81,86 @@ def worker(problemDir, configDir, work_queue, done_queue):
     return 
 
 
-class TestFramework(object):
+Tickettp = namedtuple("Ticket", ["problemID", "problemDir", "configID", "configDir"])
+class Ticket(Tickettp):
+    """Class for storing the relevant info for retrieving one or more problem instances from a file,
+    without actually needing to load the instance into memory.
+    """
+    def serve(cls, Problem, Config, Instance):
+        """
+        Parameters
+        ----------
+        Problem : class
+            The class (e.g. CVXProblem) of the problem described by |problemDir| and |problemID|.
+        Config : class
+            The class (e.g. CVXConfig) of the config described by |configDir| and |configID|.
+        Instance : class
+            The class (e.g. CVXInstance) of the instance corresponding to Problem and Config
+
+        Returns
+        -------
+        A list of |Instance|s
+        """
+        problems = Problem.read(self.problemID, self.problemDir)
+        config = Config.read(os.path.join(self.configDir, self.configID))
+        return [Instance(problem, config) for problem in problems]
+
+
+Ticket.__new__.__defaults__ = (None, None, None, None)
+
+
+
+class CVXFramework(object):
     """An object for managing the running of lots of configurations 
     against lots of individual problem instances.
 
     Attributes
     ----------
-    problemDir : string
-        Directory containing desired problem files.
-    configDir : string
-        Directory containing desired config files.
-    problems : list of TestFramework.TestProblem
-        list of problems to solve.
-    configs : list of TestFramework.SolverConfiguration
-        list of configurations under which to solve the problems.
-    cache : string
-        File containing a shelf object for storing TestInstance hashes mapped
-        to TestResults objects.
+    problems : list of (problemID, problemDir)
+        list of tuples providing info about how to load the problems to solve.
+    configs : list of (configID, configDir)
+        list of tuples providing info about how to load the 
+        configurations under which to solve the problems.
+    cache : Cache object
+        Cache for storing Results
+    tickets : list of |Ticket| objects
+        List of |Ticket| objects, each describing an Instance to solve
+    results : list of Results
+        list of results from running each Instance.
 
-        Options:
-        --------
-        parallel : boolean
-            Whether or not to run the TestInstances in parallel with each other.
-        tags : list 
-            List of tags specifying which problems types (e.g. SDP, SOCP)
-            we should solve.
+    Examples
+    --------
+    framework = CVXFramework()
+    framework.load_all_problems(problemDir) # Load list of (problemDir, problemID)
+    framework.load_all_configs(configDir)   # Load list of (configDir, configID)
+    framework.generate_tickets()            # Create |Ticket| objects
+    framework.solve()                       # Load and solve each ticket
 
-    instances : list of TestFramework.TestInstance
-        list of test instances to run.
-    results : list of TestFramework.TestResults
-        list of results from running each test instance.
+    framework = CVXFramework()
+    framework.load_all_problems(problemDir) # Load list of (problemDir, problemID)
+    framework.load_all_configs(configDir)   # Load list of (configDir, configID)
+    framework.generate_tickets()            # Create |Ticket| objects
+    framework.solve(filter)                 # Load and solve each ticket, solving only
+                                            # those that match a given filter
 
 
-    Workflow:
-    Read in problems (TestProblem)
-        Optional: Use index to filter for problems.
-    Read in solver configurations (SolverConfiguration)
-    Generate TestInstances
-    Run all TestInstances (possibly in parallel?) and record TestResults
 
     """
 
-    def __init__(self, problemDir, configDir, 
-                 testproblems=None, solverconfigs=None, cacheFile="cache.pkl", 
-                 parallel=False, tags=None, instances=None, results=None):
-        self.problemDir = problemDir
-        self.configDir = configDir
-        if testproblems is None:
-            self.testproblems = []
+    def __init__(self, problems=None, configs=None,
+                 instances=None, results=None, cache=None):
+        if problems is None:
+            self.problems = []
         else:
-            self.testproblems = testproblems
-        if solverconfigs is None:
-            self.solverconfigs = []
+            self.problems = problems
+        if configs is None:
+            self.configs = []
         else:
-            self.solverconfigs = solverconfigs
-        self.cacheFile = cacheFile
+            self.configs = configs
 
-        # Runtime options
-        self.parallel = parallel
-        if tags is None:
-            self.tags = []
-        else:
-            self.tags = tags
+        # Check stuff
+        assert all(len(prob) == 2 for prob in self.problems) # should be 2-tuples
+        assert all(len(conf) == 2 for conf in self.configs) # should be 2-tuples
 
         # Properties
         if instances is None:
@@ -151,29 +172,42 @@ class TestFramework(object):
         else:
             self.results = results
 
-    def load_problem_file(self, fileID):
+        self.cache = cache
+
+
+
+    def load_problem(self, problemID, problemDir):
         """Loads a single problem file and appends all problems
-        in it to self.testproblems.
+        in it to self.problems.
 
         Parameters
         ----------
-        fileID : string
+        problemID : string
             A unique identifier for the file to be loaded. File 
-            containing the problem should be in the format <fileID>.py.
-            <fileID>.py can also contain a list of problems.
-        """
-        self.testproblems.extend(TestProblem.get_all_from_file(fileID, self.problemDir))
+            containing the problem should be in the format <problemID>.py.
+            <problemID>.py can also contain a list of problems.
+        problemDir : string
+            The directory in which the problem resides.
 
-    def preload_all_problems(self):
-        """Loads all the problems in self.problemDir and adds them to 
-        self.testproblems.
+        Appends a tuple of (problemID, problemDir) to |self.problems|.
+
         """
-        for _, _, filenames in os.walk(self.problemDir):
+        # self.problems.extend(CVXProblem.read(fileID, problemDir))
+        self.problems.append((problemID, problemDir))
+
+    def load_all_problems(self, problemDir):
+        """Loads all the problems in |problemDir| and adds them to 
+        self.problems.
+        """
+        nfound = 0
+        for _, _, filenames in os.walk(problemDir):
             for filename in filenames:
                 if filename[-3:] == ".py" and filename != "__init__.py":
-                    self.load_problem_file(filename[0:-3])
+                    nfound += 1
+                    self.load_problem(os.path.splitext(filename)[0], problemDir)
+        print("Found {} problems in {}.".format(nfound, problemDir))
 
-    def load_config(self, configID):
+    def load_config(self, configID, configDir):
         """Loads a single solver configuration, checking if 
            cvxpy supports it:
 
@@ -181,30 +215,35 @@ class TestFramework(object):
         ----------
         configID : string
             A unique identifier for the solver configuration to be 
-            loaded. File containing the configuration should be in the form 
-            <configID>.py.
-        """
-        solverconfig = SolverConfiguration.from_file(configID, self.configDir)
-        if solverconfig is not None:
-            self.solverconfigs.append(solverconfig)
-        else:
-            warn(UserWarning("{} configuration specified but not installed.".format(configID)))
+            loaded.
+        configDir : string
+            The directory in which the config file resides.
 
-    def preload_all_configs(self):
-        """Loads all the configs in self.configDir and adds them to self.solverconfigs.
+        Appends a tuple of (configID, configDir) to |self.configs|
         """
-        for _, _, filenames in os.walk(self.configDir):
+        # config = CVXConfig.read(configID, self.configDir)
+        # if config is not None:
+        #     self.configs.append(solverconfig)
+        # else:
+        #     warn(UserWarning("{} configuration specified but not installed.".format(configID)))
+        self.configs.append((configID, configDir))
+
+    def load_all_configs(self, configDir):
+        """Loads all the configs in configDir
+        """
+        for _, _, filenames in os.walk(configDir):
             for filename in filenames:
-                if filename[-3:] == ".py" and filename != "__init__.py":
-                    configID = filename[0:-3]
-                    self.load_config(configID)
+                if filename[-4:] == ".yml" or filename[-5:] == ".yaml":
+                    # Remove extension
+                    configID = os.path.splitext(filename)[0]
+                    self.load_config(configID, configDir)
 
-    def generate_test_instances(self):
-        """Generates a test problem for every pair of (problem, config).
+    def generate_tickets(self):
+        """Generates a |Ticket| for every pair of (problem, config).
         """
-        for testproblem in self.testproblems:
-            for solverconfig in self.solverconfigs:
-                self.instances.append(TestInstance(testproblem, solverconfig))
+        for problem in self.problems:
+            for config in self.configs:
+                self.instances.append(Ticket(*(problem + config)))
 
     def clear_cache(self): # pragma: no cover
         """Clear the cache used to store TestResults
@@ -214,7 +253,7 @@ class TestFramework(object):
             pkl.dump({}, f)
         return
 
-    def solve(self, use_cache=True):
+    def solve(self, use_cache=True, parallel=True):
         """Solve all the TestInstances we have queued up.
 
         Parameters
@@ -222,7 +261,7 @@ class TestFramework(object):
         use_cache : boolean
             Whether or not we should use the cache specified in self.cacheFile
         """
-        if self.parallel:
+        if parallel:
             self.solve_all_parallel(use_cache)
         else:
             self.solve_all(use_cache)
@@ -396,100 +435,3 @@ class TestFramework(object):
         except (KeyError): # pragma: no cover
             print("TestFramework.compute_performance: 'solve_time' field not found.")
         return output
-
-    @staticmethod
-    def compute_mosek_error(results, opt_val, mosek_config, abstol=10e-4):
-        """Takes a dataframe of results including a field of optimal values and computes the relative error
-
-            error - using MOSEK as a standard, the error in the optimal value
-                defined as |value - MOSEK|/(abstol + |MOSEK|)
-
-        Does not alter results if mosek wasn't used to solve the problem.
-
-        Parameters
-        ----------
-        results : pandas.Panel
-            A pandas panel where index = <metric> (e.g. "time", "opt_val", "status", etc.),
-            major_axis = <problemID> (e.g. "least_squares_0"), and minor_axis = <configID> (e.g. "mosek_config").
-            Contains the results of solving each problem with each solver configuration.
-        opt_val : string
-            The name of the index in results where the optimal value of the problem under a specific configuration is found.
-        mosek_config : string
-            The configID for the configuration that used mosek to solve the problems.
-        abstol : float
-            The absolute tolerance used for computing the error. Added to the denominator to avoid division by zero.
-        """
-        problemsIndex = results.axes[0].levels[0]
-        configsIndex = results.axes[0].levels[1]
-        error = pd.Series(index=results.axes[0]) # (problem, config) multiindex
-        for configID in configsIndex:
-            for problemID in problemsIndex:
-                absdiff = np.absolute(
-                    (results.loc[(problemID, configID), opt_val] - 
-                        results.loc[(problemID, mosek_config), opt_val]))
-                absmosek = np.absolute(
-                               results.loc[(problemID, mosek_config), opt_val])
-                error.loc[(problemID, configID)] = absdiff/(abstol + absmosek)
-        results["error"] = error
-
-    @staticmethod
-    def compute_performance(results, time, rel_max=10e10):
-        """Takes a panel of results including a field of time data and computes the relative performance
-        as defined in Dolan, More 2001. "Benchmarking optimization software with performance profiles"
-
-            performance - for each config, for each solver, the time it took for the config to solve the problem,
-                divided by the fastest time for any config to solve the problem.
-
-            rel_max is a dummy value that should be larger than any relative performance value. It represents the case
-                when the solver does not solve the problem.
-        Does not alter results if no time field is recorded in the results already.
-
-        Parameters
-        ----------
-        results : pandas.Panel
-            A pandas panel where index = <metric> (e.g. "time", "opt_val", "status", etc.),
-            major_axis = <problemID> (e.g. "least_squares_0"), and minor_axis = <configID> (e.g. "mosek_config").
-            Contains the results of solving each problem with each solver configuration.
-        time : string
-            The name of the index in results where the solve time is stored.
-        rel_max : float 
-            A dummy value that should be larger than any relative performance value. It represents the case
-            when the solver does not solve the problem. Defaults to 10e10.
-        """
-        problemsIndex = results.axes[0].levels[0]
-        configsIndex = results.axes[0].levels[1]
-        performance = pd.Series(index=results.axes[0]) # (problem, config) multiindex
-        num_problems = 0
-        for problem in problemsIndex:
-            num_problems += 1
-            best = rel_max
-            for config in configsIndex:
-                # Get best performance for each problem.
-                this = results.loc[(problem, config), time]
-                if this < best: # also works if this is NaN
-                    best = this
-
-            if best == rel_max:
-                # No solver could solve this problem.
-                print("all solvers failed on {}".format(problem))
-                for config in configsIndex:
-                    performance.loc[(problem, config)] = rel_max;
-                continue
-
-
-            else: # Compute t/t_best for each problem for each config
-                for config in configsIndex:
-                    if math.isnan(results.loc[(problem, config), time]):
-                        performance.loc[(problem, config)] = rel_max
-                    else:
-                        performance.loc[(problem, config)] = \
-                            results.loc[(problem, config), time]/best
-
-        results["performance"] = performance
-
-
-
-
-
-
-

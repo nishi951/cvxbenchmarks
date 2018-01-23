@@ -4,6 +4,8 @@ from cvxpy.problems.solvers.utilities import SOLVERS # For compatibility check
 from cvxpy.error import SolverError
 
 import numpy as np
+import pandas as pd
+import math
 
 from collections import namedtuple
 import time
@@ -94,7 +96,13 @@ class CVXInstance(Instance):
 
 
     def __eq__(self, other):
-        return str(self) == str(other)
+        return repr(self) == repr(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return repr(self.problem) + " " + repr(self.config)
 
     def __hash__(self):
         """
@@ -116,7 +124,7 @@ class CVXInstance(Instance):
 
 
 
-cvxresultstp = namedtuple("CVXResultsd", 
+cvxresultstp = namedtuple("CVXResults", 
     ["problemID", "configID", "instancehash",
      "solve_time", "setup_time", "num_iters",
      "status", "opt_val", "avg_abs_resid", "max_resid"])
@@ -202,6 +210,100 @@ class CVXResults(Results, cvxresultstp):
         if n_residuals == 0: # pragma: no cover
             return (None, None)
         return (sum_residuals/n_residuals, max_residual)
+
+
+    @staticmethod
+    def compute_mosek_error(results, opt_val, mosek_config, abstol=10e-4):
+        """Takes a dataframe of results including a field of optimal values and computes the relative error
+
+            error - using MOSEK as a standard, the error in the optimal value
+                defined as |value - MOSEK|/(abstol + |MOSEK|)
+
+        Does not alter results if mosek wasn't used to solve the problem.
+
+        Parameters
+        ----------
+        results : pandas.Panel
+            A pandas panel where index = <metric> (e.g. "time", "opt_val", "status", etc.),
+            major_axis = <problemID> (e.g. "least_squares_0"), and minor_axis = <configID> (e.g. "mosek_config").
+            Contains the results of solving each problem with each solver configuration.
+        opt_val : string
+            The name of the index in results where the optimal value of the problem under a specific configuration is found.
+        mosek_config : string
+            The configID for the configuration that used mosek to solve the problems.
+        abstol : float
+            The absolute tolerance used for computing the error. Added to the denominator to avoid division by zero.
+        """
+        problemsIndex = results.axes[0].levels[0]
+        configsIndex = results.axes[0].levels[1]
+        error = pd.Series(index=results.axes[0]) # (problem, config) multiindex
+        for configID in configsIndex:
+            for problemID in problemsIndex:
+                absdiff = np.absolute(
+                    (results.loc[(problemID, configID), opt_val] - 
+                        results.loc[(problemID, mosek_config), opt_val]))
+                absmosek = np.absolute(
+                               results.loc[(problemID, mosek_config), opt_val])
+                error.loc[(problemID, configID)] = absdiff/(abstol + absmosek)
+        results["error"] = error
+
+    @staticmethod
+    def compute_performance(results, time, rel_max=10e10):
+        """Takes a panel of results including a field of time data and computes the relative performance
+        as defined in Dolan, More 2001. "Benchmarking optimization software with performance profiles"
+
+            performance - for each config, for each solver, the time it took for the config to solve the problem,
+                divided by the fastest time for any config to solve the problem.
+
+            rel_max is a dummy value that should be larger than any relative performance value. It represents the case
+                when the solver does not solve the problem.
+        Does not alter results if no time field is recorded in the results already.
+
+        Parameters
+        ----------
+        results : pandas.Panel
+            A pandas panel where index = <metric> (e.g. "time", "opt_val", "status", etc.),
+            major_axis = <problemID> (e.g. "least_squares_0"), and minor_axis = <configID> (e.g. "mosek_config").
+            Contains the results of solving each problem with each solver configuration.
+        time : string
+            The name of the index in results where the solve time is stored.
+        rel_max : float 
+            A dummy value that should be larger than any relative performance value. It represents the case
+            when the solver does not solve the problem. Defaults to 10e10.
+        """
+        problemsIndex = results.axes[0].levels[0]
+        configsIndex = results.axes[0].levels[1]
+        performance = pd.Series(index=results.axes[0]) # (problem, config) multiindex
+        num_problems = 0
+        for problem in problemsIndex:
+            num_problems += 1
+            best = rel_max
+            for config in configsIndex:
+                # Get best performance for each problem.
+                this = results.loc[(problem, config), time]
+                if this < best: # also works if this is NaN
+                    best = this
+
+            if best == rel_max:
+                # No solver could solve this problem.
+                print("all solvers failed on {}".format(problem))
+                for config in configsIndex:
+                    performance.loc[(problem, config)] = rel_max;
+                continue
+
+
+            else: # Compute t/t_best for each problem for each config
+                for config in configsIndex:
+                    if math.isnan(results.loc[(problem, config), time]):
+                        performance.loc[(problem, config)] = rel_max
+                    else:
+                        performance.loc[(problem, config)] = \
+                            results.loc[(problem, config), time]/best
+
+        results["performance"] = performance
+
+
+
 
 # 11 entries:
 CVXResults.__new__.__defaults__ = (None, None, None, None, None, None, None, None,

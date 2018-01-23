@@ -47,7 +47,7 @@ class CVXConfig(Config):
         return self.solver_opts
 
     @classmethod
-    def from_file(cls, configFile):
+    def read(cls, configFile):
         """Alternative constructor for loading a configuration from a text file.
         Loads a YAML file from |configFile|
 
@@ -55,10 +55,21 @@ class CVXConfig(Config):
         ----------
         configFile : string
             File path to the configuration file.
+
+        Returns
+        -------
+        A list of CVXConfig objects found in this configFile
         """
+        configs = []
         with open(configFile, 'r') as f:
-            data = yaml.safe_load(f)
-            configID = data["configID"]
-            del data["configID"]
-            return cls(configID, data)
+
+            data = yaml.load_all(f, Loader=yaml.Loader)
+            for d in data:
+                configID = d["configID"]
+                del d["configID"]
+                configs.append(cls(configID, d))
+        return configs
+
+    def __repr__(self):
+        return repr(self.configID) + ": " + repr(self.solver_opts)
 

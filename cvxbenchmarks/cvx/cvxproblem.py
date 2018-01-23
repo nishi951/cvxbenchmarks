@@ -1,5 +1,6 @@
 from cvxbenchmarks.base import Problem
 import cvxbenchmarks.settings as s
+from warnings import warn
 
 # Constraint types
 from cvxpy.constraints.semidefinite import SDP
@@ -56,8 +57,8 @@ class CVXProblem(Problem):
             self.metadata = metadata
 
     @classmethod
-    def read(cls, fileID, problemDir):
-        """Loads a file with name <fileID>.py and returns a list of
+    def read(cls, problemID, problemDir):
+        """Loads a file with name <problemID>.py and returns a list of
         testproblem objects, one for each problem found in the file.
 
         Parameters
@@ -70,16 +71,16 @@ class CVXProblem(Problem):
 
         Returns
         -------
-        a list of cvxbenchmarks.cvx.CVXProblem objects.
+        a list of CVXProblem objects.
         """
 
         # Load the module
         if problemDir not in sys.path:
             sys.path.insert(0, problemDir)
         try:
-            problemModule = __import__(fileID)
+            problemModule = __import__(problemID)
         except Exception as e: # pragma: no cover
-            warn("Could not import file " + fileID)
+            warn("Could not import file " + problemID)
             print(e)
             return []
 
@@ -93,7 +94,7 @@ class CVXProblem(Problem):
                 for problemDict in problems:
                     foundProblems.append(CVXProblem(**problemDict))
         if len(foundProblems) == 0: # pragma: no cover
-            warn(fileID + " contains no problem objects.")
+            warn(problemID + " contains no problem objects.")
         return foundProblems
 
     @staticmethod
@@ -139,5 +140,5 @@ class CVXProblem(Problem):
         return NotImplemented
 
     def __repr__(self): # pragma: no cover
-        return str(self.problemID) + " " + str(self.problem)
+        return repr(self.problemID) + " " + repr(self.problem)
 
