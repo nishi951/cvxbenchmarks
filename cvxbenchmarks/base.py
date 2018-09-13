@@ -9,9 +9,11 @@ class Problem(object):
 
     @abc.abstractmethod
     def read(self):
+        """Returns a list of problems"""
         return NotImplemented
 
     def tags(self):
+        """Returns a set of tags"""
         return []
 
 class Config(object):
@@ -26,6 +28,7 @@ class Config(object):
 
     @abc.abstractmethod
     def configure(self):
+        """Returns the data necessary to configure the solver"""
         return NotImplemented
 
 
@@ -45,15 +48,22 @@ class Instance(object):
         self.config = config
 
     @abc.abstractmethod
+
+    @abc.abstractmethod
     def run(self):
+        """Returns a Results object describing the
+        results of running this instance."""
         return NotImplemented
 
     @abc.abstractmethod
     def check_compatibility(cls, problem, config):
+        """Returns True or False depending on whether |problem| is
+        compatible with |config| or not"""
         return NotImplemented
 
     @abc.abstractmethod
     def __hash__(self):
+        """Necessary for caching."""
         return NotImplemented
 
 class Results(object):
@@ -70,18 +80,12 @@ class Results(object):
 
     @abc.abstractmethod
     def export(self):
-        return NotImplemented
-
-    @abc.abstractmethod
-    def __add__(self, other):
-        return NotImplemented
-
-    @abc.abstractmethod
-    def __radd__(self, other):
+        """Returns (ideally) a pandas DataFrame
+        containing the results of this test"""
         return NotImplemented
 
 
-class Framework(object):
+class Runner(object):
     """
     Base class for an object that can run Instances and
     produce Results.
@@ -109,15 +113,15 @@ class Framework(object):
     def __add__(self, other):
         newInstances = list(set(self.instances + other.instances))
         newResults = list(set(self.results + other.results))
-        return Framework(newInstances, newResults)
+        return Runner(newInstances, newResults)
 
-class CacheFramework(Framework):
+class CacheRunner(Runner):
     """
     Extends the basic framework to support caching.
     """
 
     def __init__(self, instances, results=None, cache=None):
-        super(CacheFramework, self).__init__(instances, results)
+        super(CacheRunner, self).__init__(instances, results)
         # Initialize cache
         if cache is None:
             self.useCache = False
@@ -134,13 +138,13 @@ class CacheFramework(Framework):
                 self.results.append(instance.run())
 
     def __add__(self, other):
-        framework = super(CacheFramework, self).__add__(self, other)
+        runner = super(CacheRunner, self).__add__(self, other)
         newCache = {}
         newCache.update(self.cache)
         newCache.update(other.cache)
-        return CacheFramework(framework.instances,
-                              framework.results,
-                              newCache)
+        return CacheRunner(runner.instances,
+                           runner.results,
+                           newCache)
 
 
 class Cache(object):

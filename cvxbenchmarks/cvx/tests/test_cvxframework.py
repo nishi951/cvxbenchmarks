@@ -66,6 +66,25 @@ def ecos_config():
     }
     return CVXConfig("ECOS_config", config)
 
+#############
+# Important #
+#############
+# This requires there to be a folder called "tests/problems"
+
+@pytest.fixture
+def problem_path():
+    return str(os.path.join(str(pytest.config.rootdir), 
+           "cvxbenchmarks", "cvx", "tests", "problems"))
+
+#############
+# Important #
+#############
+# This requires there to be a folder called "tests/configs"
+@pytest.fixture
+def config_path():
+    return str(os.path.join(str(pytest.config.rootdir), 
+               "cvxbenchmarks", "cvx", "tests", "configs"))
+
 def test_init_framework():
     f1 = CVXFramework()
     assert f1.problems == []
@@ -76,11 +95,13 @@ def test_init_framework():
 
     f2 = CVXFramework([("problem1", "problems")],
                       [("config1", "configs")],
+                      ["ticket"],
                       ["instance"],
                       ["result"],
                       "cache")
     assert f2.problems == [("problem1", "problems")]
     assert f2.configs == [("config1", "configs")]
+    assert f2.tickets == ["ticket"]
     assert f2.instances == ["instance"]
     assert f2.results == ["result"]
     assert f2.cache == "cache"
@@ -96,25 +117,22 @@ def test_load_config():
     f1.load_config("config1", "configDir")
     assert f1.configs == [("config1", "configDir")]
 
-#############
-# Important #
-#############
-# This requires there to be a folder called "tests/problems"
-def test_load_all_problems():
-    f1 = CVXFramework()
-    path = str(os.path.join(str(pytest.config.rootdir), 
-           "cvxbenchmarks", "cvx", "tests", "problems"))
-    f1.load_all_problems(path)
-    assert f1.problems == [("test_problem", path)]
 
-#############
-# Important #
-#############
-# This requires there to be a folder called "tests/configs"
-def test_load_all_configs():
+def test_load_all_problems(problem_path):
     f1 = CVXFramework()
-    path = str(os.path.join(str(pytest.config.rootdir), 
-               "cvxbenchmarks", "cvx", "tests", "configs"))
-    f1.load_all_configs(path)
-    assert f1.configs == [("test_config", path)]
+    f1.load_all_problems(problem_path)
+    assert f1.problems == [("test_problem", problem_path)]
+
+
+def test_load_all_configs(config_path):
+    f1 = CVXFramework()
+    f1.load_all_configs(config_path)
+    assert f1.configs == [("test_config", config_path)]
+
+def test_generate_tickets(problem_path, config_path):
+    f1 = CVXFramework()
+    f1.load_all_problems(problem_path)
+    f1.load_all_configs(config_path)
+    f1.generate_tickets()
+    print(f1.tickets)
 

@@ -2,6 +2,14 @@
 # Mark Nishimura 2017
 # Manages various settings, global variables, strings, etc. for cvxbenchmarks
 
+# CVXConfig
+# Configuration file types supported:
+YAML = "yaml" # Configuration file type
+
+# CVXProblem
+# Problem file types supported:
+PY = "py"
+
 # Problem Tags
 LP = "LP"
 QP = "QP"

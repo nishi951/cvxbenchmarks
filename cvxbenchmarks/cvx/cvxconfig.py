@@ -47,7 +47,15 @@ class CVXConfig(Config):
         return self.solver_opts
 
     @classmethod
-    def read(cls, configFile):
+    def read(cls, configFile, format="yaml"):
+        if format == "yaml" or format == "yml":
+            return cls.read_YAML(configFile)
+        else: # pragma: no cover
+            raise TypeError("Invalid config file format: " + format)
+
+
+    @classmethod
+    def read_YAML(cls, configFile):
         """Alternative constructor for loading a configuration from a text file.
         Loads a YAML file from |configFile|
 

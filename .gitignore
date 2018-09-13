@@ -12,6 +12,7 @@
 # Pytest Coverage
 .coverage
 htmlcov
+.pytest_cache
 
 # Random files
 cvxbenchmarks/old

@@ -57,7 +57,15 @@ class CVXProblem(Problem):
             self.metadata = metadata
 
     @classmethod
-    def read(cls, problemID, problemDir):
+    def read(cls, problemID, problemDir, format=s.PY):
+        if format == s.PY:
+            return cls.read_all_from_py(problemID, problemDir)
+        else: # pragma: no cover
+            raise TypeError("Invalid problem format: " + format)
+
+
+    @classmethod
+    def read_all_from_py(cls, problemID, problemDir):
         """Loads a file with name <problemID>.py and returns a list of
         testproblem objects, one for each problem found in the file.
 

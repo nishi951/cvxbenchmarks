@@ -85,6 +85,8 @@ Tickettp = namedtuple("Ticket", ["problemID", "problemDir", "configID", "configD
 class Ticket(Tickettp):
     """Class for storing the relevant info for retrieving one or more problem instances from a file,
     without actually needing to load the instance into memory.
+
+    4-tuple of (|problemID|, |problemDir|, |configID|, |configDir|)
     """
     def serve(cls, Problem, Config, Instance):
         """
@@ -147,7 +149,7 @@ class CVXFramework(object):
 
     """
 
-    def __init__(self, problems=None, configs=None,
+    def __init__(self, problems=None, configs=None, tickets=None,
                  instances=None, results=None, cache=None):
         if problems is None:
             self.problems = []
@@ -163,6 +165,10 @@ class CVXFramework(object):
         assert all(len(conf) == 2 for conf in self.configs) # should be 2-tuples
 
         # Properties
+        if tickets is None:
+            self.tickets = []
+        else:
+            self.tickets = tickets
         if instances is None:
             self.instances = []
         else:
@@ -243,7 +249,9 @@ class CVXFramework(object):
         """
         for problem in self.problems:
             for config in self.configs:
-                self.instances.append(Ticket(*(problem + config)))
+                self.tickets.append(Ticket(*(problem + config)))
+
+
 
     def clear_cache(self): # pragma: no cover
         """Clear the cache used to store TestResults
@@ -253,23 +261,25 @@ class CVXFramework(object):
             pkl.dump({}, f)
         return
 
-    def solve(self, use_cache=True, parallel=True):
+    def solve(self, use_cache=True, parallel=True, **kwargs):
         """Solve all the TestInstances we have queued up.
 
         Parameters
         ----------
         use_cache : boolean
             Whether or not we should use the cache specified in self.cacheFile
+        parallel : boolean
+            Whether or not to solve the problems in parallel.
         """
         if parallel:
-            self.solve_all_parallel(use_cache)
+            self._solve_all_parallel(use_cache)
         else:
-            self.solve_all(use_cache)
+            self._solve_all(use_cache)
 
-    def solve_all(self, use_cache=True):
+    def _solve_all(self, use_cache=True, **kwargs):
         """Solves all test instances and reports the results.
         """
-        self.generate_test_instances()
+        # self.generate_test_instances()
         self.results = []
         if use_cache: 
             # Load the cache dictionary from the cache file:
@@ -282,7 +292,7 @@ class CVXFramework(object):
                 print("Creating new cache file: {}".format(self.cacheFile))
                 self.clear_cache()
 
-            for instance in self.instances:
+            for ticket in self.tickets:
                 instancehash = hash(instance)
                 if instancehash in cachedResults:
                     # Retrieve TestResult from the results dictionary:
@@ -306,7 +316,7 @@ class CVXFramework(object):
         return
 
 
-    def solve_all_parallel(self, use_cache=True):
+    def _solve_all_parallel(self, use_cache=True):
         """Solves all test instances in parallel and reports the results.
         DO NOT USE WHEN USING THE CVXOPT SOLVER!
         """
