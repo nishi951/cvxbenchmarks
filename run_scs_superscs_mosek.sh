@@ -1,1 +1,0 @@
-cvxbench run --configs mosek_config scs_config superscs50_config superscs75_config superscs100_config

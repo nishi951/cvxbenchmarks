@@ -1,4 +1,4 @@
-from cvxbenchmarks.base import Instance, Results
+from cvxbenchmarks.cvx.base import Instance, Results
 
 from cvxpy.problems.solvers.utilities import SOLVERS # For compatibility check
 from cvxpy.error import SolverError

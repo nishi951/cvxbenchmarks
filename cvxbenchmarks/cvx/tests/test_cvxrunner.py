@@ -1,3 +1,4 @@
+
 import pytest
 #from mock import patch, call, mock_open, MagicMock, Mock
 import numpy as np
@@ -8,7 +9,7 @@ import os
 from cvxbenchmarks.cvx.cvxproblem import CVXProblem
 from cvxbenchmarks.cvx.cvxconfig import CVXConfig
 from cvxbenchmarks.cvx.cvxcore import CVXInstance, CVXResults
-from cvxbenchmarks.cvx.cvxframework import CVXFramework
+from cvxbenchmarks.cvx.cvxrunner import CVXRunner
 
 #Debugging
 from cvxpy.problems.problem_data.sym_data import SymData
@@ -86,14 +87,14 @@ def config_path():
                "cvxbenchmarks", "cvx", "tests", "configs"))
 
 def test_init_framework():
-    f1 = CVXFramework()
+    f1 = CVXRunner()
     assert f1.problems == []
     assert f1.configs == []
     assert f1.instances == []
     assert f1.results == []
     assert f1.cache == None
 
-    f2 = CVXFramework([("problem1", "problems")],
+    f2 = CVXRunner([("problem1", "problems")],
                       [("config1", "configs")],
                       ["ticket"],
                       ["instance"],
@@ -108,29 +109,29 @@ def test_init_framework():
 
 
 def test_load_problem():
-    f1 = CVXFramework()
+    f1 = CVXRunner()
     f1.load_problem("problem", "problemDir")
     assert f1.problems == [("problem", "problemDir")]
 
 def test_load_config():
-    f1 = CVXFramework()
+    f1 = CVXRunner()
     f1.load_config("config1", "configDir")
     assert f1.configs == [("config1", "configDir")]
 
 
 def test_load_all_problems(problem_path):
-    f1 = CVXFramework()
+    f1 = CVXRunner()
     f1.load_all_problems(problem_path)
     assert f1.problems == [("test_problem", problem_path)]
 
 
 def test_load_all_configs(config_path):
-    f1 = CVXFramework()
+    f1 = CVXRunner()
     f1.load_all_configs(config_path)
     assert f1.configs == [("test_config", config_path)]
 
 def test_generate_tickets(problem_path, config_path):
-    f1 = CVXFramework()
+    f1 = CVXRunner()
     f1.load_all_problems(problem_path)
     f1.load_all_configs(config_path)
     f1.generate_tickets()

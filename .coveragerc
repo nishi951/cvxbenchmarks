@@ -1,7 +1,4 @@
-[run]
-omit = 
-    setup.py
-    */cvxbenchmarks/oldtests/*
-    */cvxbenchmarks/scripts/*
-    */cvxbenchmarks/base.py
- 
+[report]
+exclude_lines = 
+    pragma: no cover
+    return NotImplemented

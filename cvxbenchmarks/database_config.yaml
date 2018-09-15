@@ -1,0 +1,6 @@
+% database_config.yaml
+---
+% Problem Templates
+templateDir: [cvxbenchmarks, lib, templates]
+% Template Parameters
+paramDir: [cvxbenchmarks, lib, params]

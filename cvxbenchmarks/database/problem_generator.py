@@ -99,6 +99,9 @@ class ProblemTemplate(object):
             2, 300, 500, 0
             ----
 
+        overwrite : bool
+            Whether or not to append to the list of existing parameter dictionaries.
+            
         Returns
         -------
         params : list of dict

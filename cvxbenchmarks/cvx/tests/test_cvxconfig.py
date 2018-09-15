@@ -1,14 +1,13 @@
 import pytest
 from mock import patch, call, mock_open, MagicMock, Mock
 
+import cvxbenchmarks.cvx.cvxconfig
 from cvxbenchmarks.cvx.cvxconfig import CVXConfig
 import cvxbenchmarks.settings as s
 import cvxpy as cp
 import numpy as np
 
 import sys, os.path
-
-
 
 def test_init():
     config1 = CVXConfig("config1")
@@ -25,7 +24,7 @@ def test_init():
 
 
 def test_read_YAML_and_configure():
-    configs = CVXConfig.read_YAML(os.path.join(str(pytest.config.rootdir), 
+    configs = CVXConfig.read(os.path.join(str(pytest.config.rootdir), 
                                                "cvxbenchmarks", "cvx", "tests", "configs", "test_config.yml"))
     assert configs[0].configure() == {"solver": "solver1", "eps": 1e-4, "verbose": True}
     assert configs[0].configID == "config1"

@@ -1,4 +1,4 @@
-from cvxbenchmarks.base import Problem
+from cvxbenchmarks.cvx.base import Problem
 import cvxbenchmarks.settings as s
 from warnings import warn
 

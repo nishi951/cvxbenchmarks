@@ -11,9 +11,8 @@ from cvxbenchmarks.scripts.utils import get_command_line_args
 #templateDir = os.path.join("lib", "data", "cvxbenchmarks")
 
 
-def main(args):
-    templateFile = args.template_and_params[0]
-    paramFile = args.template_and_params[1]
+def main(args=None):
+    templateFile, paramFile = args.template_and_params
     templ = pg.ProblemTemplate.from_file(templateFile, paramFile)
     print(str(templ))
 

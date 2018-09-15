@@ -14,7 +14,7 @@ class Problem(object):
 
     def tags(self):
         """Returns a set of tags"""
-        return []
+        return [] # pragma: no cover
 
 class Config(object):
     """
@@ -24,7 +24,7 @@ class Config(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
-        pass
+        pass # pragma: no cover
 
     @abc.abstractmethod
     def configure(self):
@@ -43,7 +43,7 @@ class Instance(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, problem, config):
+    def __init__(self, problem, config): # pragma: no cover
         self.problem = problem
         self.config = config
 
@@ -84,69 +84,6 @@ class Results(object):
         containing the results of this test"""
         return NotImplemented
 
-
-class Runner(object):
-    """
-    Base class for an object that can run Instances and
-    produce Results.
-
-    Also has access to a cache that can optionally be used
-    to control which instances are run.
-    """
-
-    def __init__(self, instances, results=None):
-        self.instances = instances
-        if results is None:
-            self.results = []
-        else:
-            self.results = results
-
-
-
-    def run(self):
-        for instance in self.instances:
-            self.results.append(instance.run())
-
-    def export(self):
-        return sum(results) # Calls the __add__ method a bunch
-
-    def __add__(self, other):
-        newInstances = list(set(self.instances + other.instances))
-        newResults = list(set(self.results + other.results))
-        return Runner(newInstances, newResults)
-
-class CacheRunner(Runner):
-    """
-    Extends the basic framework to support caching.
-    """
-
-    def __init__(self, instances, results=None, cache=None):
-        super(CacheRunner, self).__init__(instances, results)
-        # Initialize cache
-        if cache is None:
-            self.useCache = False
-            self.cache = None
-        else:
-            self.useCache = True
-            self.cache = {}
-
-    def run(self):
-        for instance in self.instances:
-            if self.cache.contains(instance):
-                self.results.append(self.cache[instance])
-            else:
-                self.results.append(instance.run())
-
-    def __add__(self, other):
-        runner = super(CacheRunner, self).__add__(self, other)
-        newCache = {}
-        newCache.update(self.cache)
-        newCache.update(other.cache)
-        return CacheRunner(runner.instances,
-                           runner.results,
-                           newCache)
-
-
 class Cache(object):
     """
     Abstract base class for an object that can manage the storing and refreshing
@@ -164,9 +101,6 @@ class Cache(object):
     @abc.abstractmethod
     def contains(self):
         return NotImplemented
-
-    @abc.abstractmethod
-
 
     @abc.abstractmethod
     def clear(self):

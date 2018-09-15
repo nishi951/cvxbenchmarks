@@ -112,7 +112,7 @@ Ticket.__new__.__defaults__ = (None, None, None, None)
 
 
 
-class CVXFramework(object):
+class CVXRunner(object):
     """An object for managing the running of lots of configurations 
     against lots of individual problem instances.
 

@@ -1,4 +1,4 @@
-from cvxbenchmarks.base import Config
+from cvxbenchmarks.cvx.base import Config
 import cvxbenchmarks.settings as s
 
 from ruamel import yaml

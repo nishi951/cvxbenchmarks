@@ -8,7 +8,7 @@ setup(
     author_email = 'markn1@stanford.edu',
     packages = ['cvxbenchmarks',
                 'cvxbenchmarks.cvx',
-                'cvxbenchmarks.tests',
+                'cvxbenchmarks.database',
                 'cvxbenchmarks.scripts'],
     package_dir = {'cvxbenchmarks': 'cvxbenchmarks'},
     zip_safe = False,
